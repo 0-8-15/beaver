@@ -140,4 +140,3 @@ zttap300.driver = 12
 
 [zttap300.driver]
 zttap300.sys,,,6     ; COPYFLG_NOSKIP | COPYFLG_NOVERSIONCHECK
-

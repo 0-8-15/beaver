@@ -47,7 +47,7 @@
         <copy file="libs/arm64-v8a/libZeroTierOneJNI.so"
               tofile="classes/lib/arm64-v8a/libZeroTierOneJNI.so"
               overwrite="true"/>
-        <copy file="libs/armeabi/libZeroTierOneJNI.so" 
+        <copy file="libs/armeabi/libZeroTierOneJNI.so"
               tofile="classes/lib/armeabi/libZeroTierOneJNI.so"
               overwrite="true"/>
         <copy file="libs/armeabi-v7a/libZeroTierOneJNI.so"

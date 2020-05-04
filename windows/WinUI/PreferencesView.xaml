@@ -18,7 +18,7 @@
 			<RowDefinition Height="Auto"/>
 		</Grid.RowDefinitions>
     <CheckBox x:Name="startupCheckbox" Content="Launch ZeroTier On Startup" HorizontalAlignment="Left" Margin="10" VerticalAlignment="Top" Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="0"/>
-		
+
 		<TextBlock Text="Central Instance:" Grid.Row="1" Grid.Column="0" Margin="10"/>
 		<TextBox x:Name="CentralInstanceTextBox" Grid.Row="1" Grid.Column="1" MinWidth="200" Margin="10"/>
 

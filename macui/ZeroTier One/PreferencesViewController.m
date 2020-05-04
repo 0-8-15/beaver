@@ -104,7 +104,7 @@
                 }
             }
         }
-    }    
+    }
     CFRelease(loginItems);
     return itemRef;
 }

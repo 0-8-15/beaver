@@ -174,7 +174,7 @@ GetDebugLine (
                 ret = TRUE;
 
             RELEASE_MUTEX (&g_Debug.lock);
-        }      
+        }
     }
     return ret;
 }

@@ -247,7 +247,7 @@ tapSetMediaConnectStatus(
 
     //
     // Fill in the status buffer
-    // 
+    //
     statusIndication.StatusCode = NDIS_STATUS_LINK_STATE;
     statusIndication.SourceHandle = Adapter->MiniportAdapterHandle;
     statusIndication.DestinationHandle = NULL;
@@ -610,7 +610,7 @@ Return Value:
                     inBufLength
                     );
 
-                adapter->m_dhcp_user_supplied_options_buffer_len = 
+                adapter->m_dhcp_user_supplied_options_buffer_len =
                     inBufLength;
 
                 Irp->IoStatus.Information = 1; // Simple boolean value
@@ -697,7 +697,7 @@ Return Value:
             // BUGBUG!!! Fail because this is not completely implemented.
             ntStatus = STATUS_INVALID_DEVICE_REQUEST;
         }
-#endif    
+#endif
 
 #if DBG
     case TAP_WIN_IOCTL_GET_LOG_LINE:
@@ -786,7 +786,7 @@ Routine Description:
     IRP_MJ_CLEANUP. When the routine is called, the driver should cancel all
     the pending IRPs that belong to the file object identified by the IRP_MJ_CLEANUP
     call.
-    
+
     In other words, it should cancel all the IRPs that have the same file-object
     pointer as the one supplied in the current I/O stack location of the IRP for the
     IRP_MJ_CLEANUP call. Of course, IRPs belonging to other file objects should
@@ -886,7 +886,7 @@ Routine Description:
     Receipt of this request indicates that the last handle of the file
     object that is associated with the target device object has been closed
     and released.
-    
+
     All outstanding I/O requests have been completed or canceled.
 
 Arguments:
@@ -1206,4 +1206,3 @@ DestroyTapDevice(
 
     DEBUGP (("[TAP] <-- DestroyTapDevice\n"));
 }
-

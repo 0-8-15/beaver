@@ -56,12 +56,12 @@
 {
     static NSString *k = nil;
     static NSUInteger resetCount = 0;
-    
+
     @synchronized (self) {
         if (_isQuitting) {
             return @"";
         }
-        
+
         if (_resetKey && k != nil) {
             k = nil;
             ++resetCount;
@@ -74,7 +74,7 @@
                                                        otherButton:nil
                                          informativeTextWithFormat:@"Please ensure ZeroTier is installed correctly"];
                     alert.alertStyle = NSCriticalAlertStyle;
-                    
+
                     NSModalResponse res;
                     if (!_isQuitting) {
                         res = [alert runModal];
@@ -82,7 +82,7 @@
                     else {
                         return;
                     }
-                    
+
                     if(res == 1) {
                         _isQuitting = YES;
                         [NSApp performSelector:@selector(terminate:) withObject:nil afterDelay:0.0];
@@ -108,7 +108,7 @@
                 k = [NSString stringWithContentsOfURL:authtokenURL
                                              encoding:NSUTF8StringEncoding
                                                 error:&error];
-                
+
                 k = [k stringByReplacingOccurrencesOfString:@"\n" withString:@""];
 
                 if (error) {

@@ -53,7 +53,7 @@ struct route_entry {
 typedef std::vector<route_entry> RouteList;
 
 /**
- * Interface with Linux's RTNETLINK 
+ * Interface with Linux's RTNETLINK
  */
 class LinuxNetLink
 {
@@ -122,7 +122,7 @@ private:
     // socket communication vars;
     int _fd;
     struct sockaddr_nl _la;
-};    
+};
 
 }
 

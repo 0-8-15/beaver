@@ -34,7 +34,7 @@ public interface DataStorePutListener {
      * <p>If secure is true, the file should be set readable and writable only
      * to the user running ZeroTier One. What this means is platform-specific.</p>
      *
-     * <p>Name semantics are the same as {@link DataStoreGetListener}. This must return 
+     * <p>Name semantics are the same as {@link DataStoreGetListener}. This must return
      * zero on success. You can return any OS-specific error code on failure, as these
      * may be visible in logs or error messages and might aid in debugging.</p>
      *
@@ -50,7 +50,7 @@ public interface DataStorePutListener {
 
     /**
      * Function to delete an object from the data store
-     * 
+     *
      * @param name Object name
      * @return 0 on success.
      */

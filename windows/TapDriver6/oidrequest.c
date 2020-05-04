@@ -308,9 +308,9 @@ Arguments:
 
 Return Value:
 
-    NDIS_STATUS   
+    NDIS_STATUS
 
---*/      
+--*/
 {
     NDIS_STATUS status = NDIS_STATUS_SUCCESS;
 
@@ -329,19 +329,19 @@ AdapterSetPowerLow(
 /*++
 Routine Description:
 
-    The NIC is about to be transitioned to a low power state. 
+    The NIC is about to be transitioned to a low power state.
     Prepare the NIC for the sleeping state:
-        - Disable interrupts and the NIC's DMA engine, cancel timers.  
-        - Save any hardware context that the NIC cannot preserve in 
-          a sleeping state (packet filters, multicast addresses, 
+        - Disable interrupts and the NIC's DMA engine, cancel timers.
+        - Save any hardware context that the NIC cannot preserve in
+          a sleeping state (packet filters, multicast addresses,
           the current MAC address, etc.)
-    A miniport driver cannot access the NIC hardware after 
+    A miniport driver cannot access the NIC hardware after
     the NIC has been set to the D3 state by the bus driver.
 
-    Miniport drivers NDIS v6.30 and above 
-        Do NOT wait for NDIS to return the ownership of all 
+    Miniport drivers NDIS v6.30 and above
+        Do NOT wait for NDIS to return the ownership of all
         NBLs from outstanding receive indications
-        Retain ownership of all the receive descriptors and 
+        Retain ownership of all the receive descriptors and
         packet buffers previously owned by the hardware.
 
 Arguments:
@@ -351,17 +351,17 @@ Arguments:
 
 Return Value:
 
-    NDIS_STATUS   
+    NDIS_STATUS
 
---*/      
+--*/
 {
     NDIS_STATUS status = NDIS_STATUS_SUCCESS;
 
     DEBUGP (("[TAP] PowerState: Low-power\n"));
 
     //
-    // Miniport drivers NDIS v6.20 and below are 
-    // paused prior the low power transition 
+    // Miniport drivers NDIS v6.20 and below are
+    // paused prior the low power transition
     //
 
     // Check for paused state...
@@ -495,7 +495,7 @@ Return Value:
     case OID_PNP_REMOVE_WAKE_UP_PATTERN:
     case OID_PNP_ENABLE_WAKE_UP:
 #endif
-        ASSERT(!"NIC does not support wake on LAN OIDs"); 
+        ASSERT(!"NIC does not support wake on LAN OIDs");
     default:
         //
         // The entry point may by used by other requests
@@ -637,7 +637,7 @@ Return Value:
             PNDIS_INTERRUPT_MODERATION_PARAMETERS moderationParams
                 = (PNDIS_INTERRUPT_MODERATION_PARAMETERS)OidRequest->DATA.QUERY_INFORMATION.InformationBuffer;
 
-            moderationParams->Header.Type = NDIS_OBJECT_TYPE_DEFAULT; 
+            moderationParams->Header.Type = NDIS_OBJECT_TYPE_DEFAULT;
             moderationParams->Header.Revision = NDIS_INTERRUPT_MODERATION_PARAMETERS_REVISION_1;
             moderationParams->Header.Size = NDIS_SIZEOF_INTERRUPT_MODERATION_PARAMETERS_REVISION_1;
             moderationParams->Flags = 0;
@@ -1025,4 +1025,3 @@ AdapterCancelOidRequest(
     // to worry about cancelling them.
     //
 }
-

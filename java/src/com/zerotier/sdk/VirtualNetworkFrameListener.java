@@ -30,7 +30,7 @@ package com.zerotier.sdk;
 public interface VirtualNetworkFrameListener {
     /**
      * Function to send a frame out to a virtual network port
-     * 
+     *
      * @param nwid ZeroTier One network ID
      * @param srcMac source MAC address
      * @param destMac destination MAC address

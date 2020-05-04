@@ -129,7 +129,7 @@ tapAdapterContextAllocate(
 #pragma warning( suppress : 28197 )
         adapter->ReceiveNblPool = NdisAllocateNetBufferListPool(
             adapter->MiniportAdapterHandle,
-            &nblPoolParameters); 
+            &nblPoolParameters);
 
         if (adapter->ReceiveNblPool == NULL)
         {
@@ -255,7 +255,7 @@ tapReadConfiguration(
         //
         // NetCfgInstanceId is  a GUID string provided by NDIS that identifies
         // the adapter instance. An example is:
-        // 
+        //
         //    NetCfgInstanceId={410EB49D-2381-4FE7-9B36-498E22619DF0}
         //
         // Other names are derived from NetCfgInstanceId. For example, MiniportName:
@@ -284,7 +284,7 @@ tapReadConfiguration(
                 Adapter->NetCfgInstanceId.Buffer = Adapter->NetCfgInstanceIdBuffer;
 
                 NdisMoveMemory(
-                    Adapter->NetCfgInstanceId.Buffer, 
+                    Adapter->NetCfgInstanceId.Buffer,
                     configParameter->ParameterData.StringData.Buffer,
                     Adapter->NetCfgInstanceId.Length
                     );
@@ -775,7 +775,7 @@ AdapterCreate(
         genAttributes.IfType = TAP_IFTYPE;
         genAttributes.IfConnectorPresent = TAP_HAS_PHYSICAL_CONNECTOR;
         genAttributes.SupportedStatistics = TAP_SUPPORTED_STATISTICS;
-        genAttributes.SupportedPauseFunctions = NdisPauseFunctionsUnsupported; // IEEE 802.3 pause frames 
+        genAttributes.SupportedPauseFunctions = NdisPauseFunctionsUnsupported; // IEEE 802.3 pause frames
         genAttributes.DataBackFillSize = 0;
         genAttributes.ContextBackFillSize = 0;
 
@@ -965,7 +965,7 @@ tapWaitForReceiveNblInFlightCountZeroEvent(
         for (;;)
         {
             BOOLEAN waitResult = NdisWaitEvent(
-                &Adapter->ReceiveNblInFlightCountZeroEvent, 
+                &Adapter->ReceiveNblInFlightCountZeroEvent,
                 TAP_WAIT_POLL_LOOP_TIMEOUT
                 );
 
@@ -1684,7 +1684,7 @@ tapAdapterAcquireLock(
     )
 {
     ASSERT(!DispatchLevel || (DISPATCH_LEVEL == KeGetCurrentIrql()));
-   
+
     if (DispatchLevel)
     {
         NdisDprAcquireSpinLock(&Adapter->AdapterLock);
@@ -1702,7 +1702,7 @@ tapAdapterReleaseLock(
     )
 {
     ASSERT(!DispatchLevel || (DISPATCH_LEVEL == KeGetCurrentIrql()));
-   
+
     if (DispatchLevel)
     {
         NdisDprReleaseSpinLock(&Adapter->AdapterLock);
@@ -1712,5 +1712,3 @@ tapAdapterReleaseLock(
         NdisReleaseSpinLock(&Adapter->AdapterLock);
     }
 }
-
-

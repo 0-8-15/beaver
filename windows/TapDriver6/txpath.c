@@ -247,7 +247,7 @@ ProcessARP(
 
             //----------------------------------------------
             // ARP addresses
-            //----------------------------------------------      
+            //----------------------------------------------
             ETH_COPY_NETWORK_ADDRESS (arp->m_MAC_Source, mac);
             ETH_COPY_NETWORK_ADDRESS (arp->m_MAC_Destination, Adapter->PermanentAddress);
             ETH_COPY_NETWORK_ADDRESS (arp->m_ARP_MAC_Source, mac);
@@ -517,7 +517,7 @@ Return Value:
         // Packet data was contiguous and not yet copied to m_Data.
         NdisMoveMemory(tapPacket->m_Data,packetData,packetLength);
     }
-    
+
     DUMP_PACKET ("AdapterTransmit", tapPacket->m_Data, packetLength);
 
     //=====================================================
@@ -688,7 +688,7 @@ Return Value:
     else
     {
         //
-        // Tragedy. All this work and the packet is of no use... 
+        // Tragedy. All this work and the packet is of no use...
         //
         NdisFreeMemory(tapPacket,0,0);
     }
@@ -702,7 +702,7 @@ no_queue:
     {
         NdisFreeMemory(tapPacket,0,0);
     }
-  
+
 exit_success:
     return;
 }
@@ -983,7 +983,7 @@ Return Value:
     //
     //    BUGBUG!!! Perhaps this should be less agressive. Fail only individual
     //    NBLs...
-    //    
+    //
     // If length check is valid, then TAP_PACKETS can be safely allocated
     // and processed for all NBs being sent.
     //
@@ -1050,7 +1050,7 @@ Return Value:
         DispatchLevel
         );
 
-    // Attempt to complete pending read IRPs from pending TAP 
+    // Attempt to complete pending read IRPs from pending TAP
     // send packet queue.
     tapProcessSendPacketQueue(adapter);
 }
@@ -1157,14 +1157,14 @@ TapDeviceRead(
     // Note: IoCsqInsertIrp marks the IRP pending.
     //
 
-    // BUGBUG!!! NDIS 5 implementation has IRP_QUEUE_SIZE of 16 and 
+    // BUGBUG!!! NDIS 5 implementation has IRP_QUEUE_SIZE of 16 and
     // does not queue IRP if this capacity is exceeded.
     //
     // Is this needed???
     //
     IoCsqInsertIrp(&adapter->PendingReadIrpQueue.CsqQueue, Irp, NULL);
 
-    // Attempt to complete pending read IRPs from pending TAP 
+    // Attempt to complete pending read IRPs from pending TAP
     // send packet queue.
     tapProcessSendPacketQueue(adapter);
 
@@ -1172,4 +1172,3 @@ TapDeviceRead(
 
     return ntStatus;
 }
-

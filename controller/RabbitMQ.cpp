@@ -42,7 +42,7 @@ RabbitMQ::RabbitMQ(MQConfig *cfg, const char *queueName)
 	, _qName(queueName)
 	, _socket(NULL)
 	, _status(0)
-{   
+{
 }
 
 RabbitMQ::~RabbitMQ()
@@ -64,12 +64,12 @@ void RabbitMQ::init()
 	if (!_socket) {
 		throw std::runtime_error("Can't create socket for RabbitMQ");
 	}
-	
+
 	_status = amqp_socket_open_noblock(_socket, _mqc->host, _mqc->port, &tval);
 	if (_status) {
 		throw std::runtime_error("Can't connect to RabbitMQ");
 	}
-	
+
 	amqp_rpc_reply_t r = amqp_login(_conn, "/", 0, 131072, 0, AMQP_SASL_METHOD_PLAIN,
 		_mqc->username, _mqc->password);
 	if (r.reply_type != AMQP_RESPONSE_NORMAL) {
@@ -86,7 +86,7 @@ void RabbitMQ::init()
 	if(r.reply_type != AMQP_RESPONSE_NORMAL) {
 		throw std::runtime_error("Error opening communication channel");
 	}
-	
+
 	_q = amqp_queue_declare(_conn, _channel, amqp_cstring_bytes(_qName), 0, 0, 0, 0, amqp_empty_table);
 	r = amqp_get_rpc_reply(_conn);
 	if (r.reply_type != AMQP_RESPONSE_NORMAL) {

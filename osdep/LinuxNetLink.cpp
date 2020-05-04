@@ -88,7 +88,7 @@ LinuxNetLink::~LinuxNetLink()
 	::close(_fd);
 }
 
-void LinuxNetLink::_setSocketTimeout(int fd, int seconds) 
+void LinuxNetLink::_setSocketTimeout(int fd, int seconds)
 {
 	struct timeval tv;
 	tv.tv_sec = seconds;
@@ -161,7 +161,7 @@ int LinuxNetLink::_doRecv(int fd)
 				nll = 0;
 				break;
 			}
-			
+
 			nll += rtn;
 
 			_processMessage(nlp, nll);
@@ -196,7 +196,7 @@ void LinuxNetLink::_processMessage(struct nlmsghdr *nlp, int nll)
 {
 	for(; NLMSG_OK(nlp, nll); nlp=NLMSG_NEXT(nlp, nll))
 	{
-		switch(nlp->nlmsg_type) 
+		switch(nlp->nlmsg_type)
 		{
 		case RTM_NEWLINK:
 			_linkAdded(nlp);
@@ -232,7 +232,7 @@ void LinuxNetLink::_ipAddressAdded(struct nlmsghdr *nlp)
 	char local[40] = {0};
 	char label[40] = {0};
 	char bcast[40] = {0};
-	
+
 	for(;RTA_OK(rtap, ifal); rtap=RTA_NEXT(rtap,ifal))
 	{
 		switch(rtap->rta_type) {
@@ -653,7 +653,7 @@ void LinuxNetLink::addRoute(const InetAddress &target, const InetAddress &via, c
 		if(src.isV4()) {
 			rtap->rta_len = RTA_LENGTH(sizeof(struct in_addr));
 			memcpy(RTA_DATA(rtap), &((struct sockaddr_in*)&src)->sin_addr, sizeof(struct in_addr));
-			
+
 		} else {
 			rtap->rta_len = RTA_LENGTH(sizeof(struct in6_addr));
 			memcpy(RTA_DATA(rtap), &((struct sockaddr_in6*)&src)->sin6_addr, sizeof(struct in6_addr));
@@ -768,7 +768,7 @@ void LinuxNetLink::delRoute(const InetAddress &target, const InetAddress &via, c
 		if(src.isV4()) {
 			rtap->rta_len = RTA_LENGTH(sizeof(struct in_addr));
 			memcpy(RTA_DATA(rtap), &((struct sockaddr_in*)&src)->sin_addr, sizeof(struct in_addr));
-			
+
 		} else {
 			rtap->rta_len = RTA_LENGTH(sizeof(struct in6_addr));
 			memcpy(RTA_DATA(rtap), &((struct sockaddr_in6*)&src)->sin6_addr, sizeof(struct in6_addr));
@@ -864,7 +864,7 @@ void LinuxNetLink::addAddress(const InetAddress &addr, const char *iface)
 		close(fd);
 		return;
 	}
-	
+
 	int rtl = sizeof(struct ifaddrmsg);
 	struct nl_adr_req req;
 	bzero(&req, sizeof(struct nl_adr_req));
@@ -976,7 +976,7 @@ void LinuxNetLink::removeAddress(const InetAddress &addr, const char *iface)
 		close(fd);
 		return;
 	}
-	
+
 	int rtl = sizeof(struct ifaddrmsg);
 	struct nl_adr_req req;
 	bzero(&req, sizeof(struct nl_adr_req));
@@ -1052,7 +1052,7 @@ void LinuxNetLink::removeAddress(const InetAddress &addr, const char *iface)
 	close(fd);
 }
 
-RouteList LinuxNetLink::getIPV4Routes() const 
+RouteList LinuxNetLink::getIPV4Routes() const
 {
 	return _routes_ipv4;
 }

@@ -539,7 +539,7 @@ ZT_PeerList *Node::peers() const
 			p->paths[p->pathCount].expired = 0;
 			p->paths[p->pathCount].preferred = ((*path) == bestp) ? 1 : 0;
 			p->paths[p->pathCount].latency = (float)(*path)->latency();
-			p->paths[p->pathCount].packetDelayVariance = (*path)->packetDelayVariance(); 
+			p->paths[p->pathCount].packetDelayVariance = (*path)->packetDelayVariance();
 			p->paths[p->pathCount].throughputDisturbCoeff = (*path)->throughputDisturbanceCoefficient();
 			p->paths[p->pathCount].packetErrorRatio = (*path)->packetErrorRatio();
 			p->paths[p->pathCount].packetLossRatio = (*path)->packetLossRatio();

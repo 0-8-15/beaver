@@ -103,7 +103,7 @@ LinuxEthernetTap::LinuxEthernetTap(
 
 	// ensure netlink connection is started
 	(void)LinuxNetLink::getInstance();
-	
+
 	OSUtils::ztsnprintf(nwids,sizeof(nwids),"%.16llx",nwid);
 
 	Mutex::Lock _l(__tapCreateLock); // create only one tap at a time, globally

@@ -461,7 +461,7 @@
 
 /**
  * Delay between full-fledge pings of directly connected peers.
- * 
+ *
  * With multipath bonding enabled ping peers more often to measure
  * packet loss and latency. This uses more bandwidth so is disabled
  * by default to avoid increasing idle bandwidth use for regular

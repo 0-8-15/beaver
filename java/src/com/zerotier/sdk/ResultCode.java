@@ -63,7 +63,7 @@ public enum ResultCode {
      * Network ID not valid
      */
 	RESULT_ERROR_NETWORK_NOT_FOUND(1000);
-	
+
 	private final int id;
     ResultCode(int id) { this.id = id; }
     public int getValue() { return id; }

@@ -29,7 +29,7 @@ package com.zerotier.sdk;
 
 public final class Version {
     private Version() {}
-    
+
 	public int major = 0;
 	public int minor = 0;
 	public int revision = 0;

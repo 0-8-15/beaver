@@ -14,9 +14,9 @@
             <CollectionViewSource.SortDescriptions>
                 <scm:SortDescription PropertyName="Header" Direction="Ascending"/>
             </CollectionViewSource.SortDescriptions>
-        </CollectionViewSource>   
+        </CollectionViewSource>
     </Window.Resources>
-    
+
     <Grid>
         <tb:TaskbarIcon x:Name="MyNotifyIcon"
                         IconSource="ZeroTierIcon.ico"

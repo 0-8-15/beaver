@@ -277,7 +277,7 @@ tapIrpCsqPeekNextIrp(
 
 //
 // tapIrpCsqAcquireQueueLock modifies the execution level of the current processor.
-// 
+//
 // KeAcquireSpinLock raises the execution level to Dispatch Level and stores
 // the current execution level in the Irql parameter to be restored at a later
 // time.  KeAcqurieSpinLock also requires us to be running at no higher than
@@ -308,7 +308,7 @@ tapIrpCsqAcquireQueueLock(
 
 //
 // tapIrpCsqReleaseQueueLock modifies the execution level of the current processor.
-// 
+//
 // KeReleaseSpinLock assumes we already hold the spin lock and are therefore
 // running at Dispatch level.  It will use the Irql parameter saved in a
 // previous call to KeAcquireSpinLock to return the thread back to it's original
@@ -384,7 +384,7 @@ tapIrpCsqFlush(
                     NULL
                     );
 
-    while(pendingIrp) 
+    while(pendingIrp)
     {
         // Cancel the IRP
         pendingIrp->IoStatus.Information = 0;

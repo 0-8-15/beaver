@@ -61,7 +61,7 @@ static void ZT_LOCAL_TRACE(void *const tPtr,const RuntimeEnvironment *const RR,c
 
 void Trace::resettingPathsInScope(void *const tPtr,const Address &reporter,const InetAddress &reporterPhysicalAddress,const InetAddress &myPhysicalAddress,const InetAddress::IpScope scope)
 {
-	char tmp[128];
+	char tmp[128]="";
 
 	ZT_LOCAL_TRACE(tPtr,RR,"RESET and revalidate paths in scope %d; new phy address %s reported by trusted peer %.10llx",(int)scope,myPhysicalAddress.toIpString(tmp),reporter.toInt());
 

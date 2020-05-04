@@ -370,7 +370,7 @@ public:
 
 	/**
 	 * Push credentials if we haven't done so in a very long time
-	 * 
+	 *
 	 * @param tPtr Thread pointer to be handed through to any callbacks called as a result of this call
 	 * @param to Destination peer address
 	 * @param now Current time

@@ -98,7 +98,7 @@ namespace WinUI
             }
         }
 
-        private void updateStatus(ZeroTierStatus status) 
+        private void updateStatus(ZeroTierStatus status)
         {
             if (status != null)
             {
@@ -152,7 +152,7 @@ namespace WinUI
                 netListView.Top = netListLocation.Y;
                 netListNeedsMoving = false;
             }
-            
+
             netListView.Show();
 
             if (netListNeedsMoving)
@@ -303,7 +303,7 @@ namespace WinUI
                     {
                         APIHandler.Instance.JoinNetwork(Dispatcher, network.NetworkId, network.AllowManaged, network.AllowGlobal, network.AllowDefault);
                     }
-                }   
+                }
             }
         }
 
@@ -332,7 +332,7 @@ namespace WinUI
 
             double top = screenHeight - height - 40;
             double left = screenWidth - width - 20;
-            
+
             w.Top = top;
             w.Left = left;
         }

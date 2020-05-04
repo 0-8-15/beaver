@@ -925,7 +925,7 @@ public:
 	}
 
 	void readLocalSettings()
-	{		
+	{
 		// Read local configuration
 		std::map<InetAddress,ZT_PhysicalPathConfiguration> ppc;
 

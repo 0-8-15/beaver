@@ -59,7 +59,7 @@ namespace WinUI
         {
             String dataPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "\\ZeroTier\\One";
             String dataFile = Path.Combine(dataPath, "networks.dat");
-            
+
             if (File.Exists(dataFile))
             {
                 List<ZeroTierNetwork> netList;

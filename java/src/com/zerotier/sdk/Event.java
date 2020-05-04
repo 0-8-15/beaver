@@ -50,7 +50,7 @@ public enum Event {
 
     /**
      * Node is shutting down
-     * 
+     *
      * <p>This is generated within Node's destructor when it is being shut down.
      * It's done for convenience, since cleaning up other state in the event
      * handler may appear more idiomatic.</p>
@@ -59,27 +59,27 @@ public enum Event {
 
     /**
      * Your identity has collided with another node's ZeroTier address
-     * 
+     *
      * <p>This happens if two different public keys both hash (via the algorithm
      * in Identity::generate()) to the same 40-bit ZeroTier address.</p>
-     * 
+     *
      * <p>This is something you should "never" see, where "never" is defined as
      * once per 2^39 new node initializations / identity creations. If you do
      * see it, you're going to see it very soon after a node is first
      * initialized.</p>
-     * 
+     *
      * <p>This is reported as an event rather than a return code since it's
      * detected asynchronously via error messages from authoritative nodes.</p>
-     * 
+     *
      * <p>If this occurs, you must shut down and delete the node, delete the
      * identity.secret record/file from the data store, and restart to generate
      * a new identity. If you don't do this, you will not be able to communicate
      * with other nodes.</p>
-     * 
+     *
      * <p>We'd automate this process, but we don't think silently deleting
      * private keys or changing our address without telling the calling code
      * is good form. It violates the principle of least surprise.</p>
-     * 
+     *
      * <p>You can technically get away with not handling this, but we recommend
      * doing so in a mature reliable application. Besides, handling this
      * condition is a good way to make sure it never arises. It's like how

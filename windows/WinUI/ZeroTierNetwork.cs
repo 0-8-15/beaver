@@ -413,7 +413,7 @@ namespace WinUI
                 NotifyPropertyChanged();
             }
         }
-        
+
         public bool IsConnected
         {
             get
@@ -450,7 +450,7 @@ namespace WinUI
 
             return NetworkId.Equals(network.NetworkId);
         }
-        
+
         public int CompareTo(ZeroTierNetwork network)
         {
             if (NetworkId == null || network == null)

@@ -40,7 +40,7 @@ namespace ZeroTier {
  * A circular buffer
  *
  * For fast handling of continuously-evolving variables (such as path quality metrics).
- * Using this, we can maintain longer sliding historical windows for important path 
+ * Using this, we can maintain longer sliding historical windows for important path
  * metrics without the need for potentially expensive calls to memcpy/memmove.
  *
  * Some basic statistical functionality is implemented here in an attempt
@@ -73,7 +73,7 @@ public:
 		return buf + begin;
 	}
 
-	/** 
+	/**
 	 * Adjust buffer index pointer as if we copied data in
 	 * @param n Number of elements to copy in
 	 * @return Number of elements we copied in
@@ -96,13 +96,13 @@ public:
 		return n;
 	}
 
-	/** 
-	 * Fast erase, O(1). 
+	/**
+	 * Fast erase, O(1).
 	 * Merely reset the buffer pointer, doesn't erase contents
 	 */
 	inline void reset() { consume(count()); }
 
-	/** 
+	/**
 	 * adjust buffer index pointer as if we copied data out
 	 * @param n Number of elements we copied from the buffer
 	 * @return Number of elements actually available from the buffer

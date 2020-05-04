@@ -666,4 +666,3 @@ TapDeviceWrite(
 
     return ntStatus;
 }
-

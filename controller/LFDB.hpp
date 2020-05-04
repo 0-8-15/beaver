@@ -96,7 +96,7 @@ protected:
 	std::thread _syncThread;
 	bool _storeOnlineState;
 };
-	
+
 } // namespace ZeroTier
 
 #endif

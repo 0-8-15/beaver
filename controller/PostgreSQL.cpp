@@ -141,7 +141,7 @@ PostgreSQL::~PostgreSQL()
 {
 	_run = 0;
 	std::this_thread::sleep_for(std::chrono::milliseconds(100));
-	
+
 	_heartbeatThread.join();
 	_membersDbWatcher.join();
 	_networksDbWatcher.join();
@@ -222,7 +222,7 @@ void PostgreSQL::eraseNetwork(const uint64_t networkId)
 	_commitQueue.post(tmp);
 }
 
-void PostgreSQL::eraseMember(const uint64_t networkId, const uint64_t memberId) 
+void PostgreSQL::eraseMember(const uint64_t networkId, const uint64_t memberId)
 {
 	char tmp2[24];
 	std::pair<nlohmann::json,bool> tmp;
@@ -267,7 +267,7 @@ void PostgreSQL::initializeNetworks(PGconn *conn)
 			NULL,
 			NULL,
 			0);
-		
+
 		if (PQresultStatus(res) != PGRES_TUPLES_OK) {
 			fprintf(stderr, "Networks Initialization Failed: %s", PQerrorMessage(conn));
 			PQclear(res);
@@ -339,7 +339,7 @@ void PostgreSQL::initializeNetworks(PGconn *conn)
 				NULL,
 				NULL,
 				0);
-			
+
 			if (PQresultStatus(r2) != PGRES_TUPLES_OK) {
 				fprintf(stderr, "ERROR: Error retreiving IP pools for network: %s\n", PQresultErrorMessage(r2));
 				PQclear(r2);
@@ -391,7 +391,7 @@ void PostgreSQL::initializeNetworks(PGconn *conn)
 			}
 
 			PQclear(r2);
-			
+
 			_networkChanged(empty, config, false);
 		}
 
@@ -616,7 +616,7 @@ void PostgreSQL::heartbeat()
 			};
 
 			PGresult *res = PQexecParams(conn,
-				"INSERT INTO ztc_controller (id, cluster_host, last_alive, public_identity, v_major, v_minor, v_rev, v_build, host_port, use_rabbitmq) " 
+				"INSERT INTO ztc_controller (id, cluster_host, last_alive, public_identity, v_major, v_minor, v_rev, v_build, host_port, use_rabbitmq) "
 				"VALUES ($1, $2, TO_TIMESTAMP($3::double precision/1000), $4, $5, $6, $7, $8, $9, $10) "
 				"ON CONFLICT (id) DO UPDATE SET cluster_host = EXCLUDED.cluster_host, last_alive = EXCLUDED.last_alive, "
 				"public_identity = EXCLUDED.public_identity, v_major = EXCLUDED.v_major, v_minor = EXCLUDED.v_minor, "
@@ -768,7 +768,7 @@ void PostgreSQL::networksDbWatcher()
 		PQfinish(conn);
 		conn = NULL;
 	}
-	
+
 	if (_run == 1) {
 		fprintf(stderr, "ERROR: %s networksDbWatcher should still be running! Exiting Controller.\n", _myAddressStr.c_str());
 		exit(8);
@@ -934,7 +934,7 @@ void PostgreSQL::commitThread()
 						NULL,
 						NULL,
 						0);
-					
+
 					if (PQresultStatus(res) != PGRES_COMMAND_OK) {
 						fprintf(stderr, "ERROR: Error updating member: %s\n", PQresultErrorMessage(res));
 						fprintf(stderr, "%s", OSUtils::jsonDump(*config, 2).c_str());
@@ -1004,7 +1004,7 @@ void PostgreSQL::commitThread()
 							NULL,
 							NULL,
 							0);
-						
+
 						if (PQresultStatus(res) != PGRES_COMMAND_OK) {
 							fprintf(stderr, "ERROR: Error setting IP addresses for member: %s\n", PQresultErrorMessage(res));
 							PQclear(res);
@@ -1029,7 +1029,7 @@ void PostgreSQL::commitThread()
 						nlohmann::json memNew(*config);
 
 						get(nwidInt, nwOrig, memberidInt, memOrig);
-				
+
 						_memberChanged(memOrig, memNew, qitem.second);
 					} else {
 						fprintf(stderr, "Can't notify of change.  Error parsing nwid or memberid: %llu-%llu\n", (unsigned long long)nwidInt, (unsigned long long)memberidInt);
@@ -1111,7 +1111,7 @@ void PostgreSQL::commitThread()
 						NULL,
 						NULL,
 						0);
-					
+
 					if (PQresultStatus(res) != PGRES_COMMAND_OK) {
 						fprintf(stderr, "ERROR: Error updating network record: %s\n", PQresultErrorMessage(res));
 						PQclear(res);
@@ -1136,7 +1136,7 @@ void PostgreSQL::commitThread()
 					const char *params[1] = {
 						id.c_str()
 					};
-					res = PQexecParams(conn, 
+					res = PQexecParams(conn,
 						"DELETE FROM ztc_network_assignment_pool WHERE network_id = $1",
 						1,
 						NULL,
@@ -1190,7 +1190,7 @@ void PostgreSQL::commitThread()
 						continue;
 					}
 
-					res = PQexecParams(conn, 
+					res = PQexecParams(conn,
 						"DELETE FROM ztc_network_route WHERE network_id = $1",
 						1,
 						NULL,
@@ -1295,7 +1295,7 @@ void PostgreSQL::commitThread()
 						NULL,
 						NULL,
 						0);
-					
+
 					if (PQresultStatus(res) != PGRES_COMMAND_OK) {
 						fprintf(stderr, "ERROR: Error deleting network: %s\n", PQresultErrorMessage(res));
 					}
@@ -1395,16 +1395,16 @@ void PostgreSQL::onlineNotificationThread()
 			if (found == _networks.end()) {
 				continue; // skip members trying to join non-existant networks
 			}
-			
+
 			std::string networkId(nwidTmp);
 			std::string memberId(memTmp);
-			
+
 			std::vector<std::string> &members = updateMap[networkId];
 			members.push_back(memberId);
 
 			lastOnlineCumulative[i->first] = i->second.first;
-			
-			
+
+
 			const char *qvals[2] = {
 				networkId.c_str(),
 				memberId.c_str()
@@ -1432,7 +1432,7 @@ void PostgreSQL::onlineNotificationThread()
 				int64_t ts = i->second.first;
 				std::string ipAddr = i->second.second.toIpString(ipTmp);
 				std::string timestamp = std::to_string(ts);
-				
+
 				if (firstRun) {
 					firstRun = false;
 				} else {
@@ -1481,7 +1481,7 @@ PGconn *PostgreSQL::getPgConn(OverrideMode m)
 		if (connStr != NULL) {
 			fprintf(stderr, "PGBouncer Override\n");
 			std::string conn(connStr);
-			conn += " application_name=controller-"; 
+			conn += " application_name=controller-";
 			conn += _myAddressStr.c_str();
 			return PQconnectdb(conn.c_str());
 		}

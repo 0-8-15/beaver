@@ -36,14 +36,14 @@ import java.lang.String;
 public interface EventListener {
     /**
      * Callback for events with no other associated metadata
-     * 
+     *
      * @param event {@link Event} enum
      */
     public void onEvent(Event event);
-    
+
     /**
      * Trace messages
-     * 
+     *
      * <p>These events are only generated if the underlying ZeroTierOne SDK is a TRACE-enabled build.</p>
      *
      * @param message the trace message

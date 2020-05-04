@@ -80,7 +80,7 @@
   #define ZT_THREAD_ID (long)0 // (long)gettid()
 #endif
 #ifdef _WIN32
-  #define ZT_THREAD_ID (long)0 // 
+  #define ZT_THREAD_ID (long)0 //
 #endif
 #if defined(__JNI_LIB__)
 		#include <jni.h>

@@ -33,7 +33,7 @@
     self.webView.layer.masksToBounds = YES;
     [self.webView.layer setBorderColor:[[NSColor darkGrayColor] CGColor]];
     self.webView.policyDelegate = self;
-    
+
     NSBundle *bundle = [NSBundle mainBundle];
     NSURL *path = [bundle URLForResource:@"about" withExtension:@"html"];
     if(path) {

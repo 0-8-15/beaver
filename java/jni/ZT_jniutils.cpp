@@ -941,4 +941,3 @@ jobject newVirtualNetworkRoute(JNIEnv *env, const ZT_VirtualNetworkRoute &route)
 #ifdef __cplusplus
 }
 #endif
-

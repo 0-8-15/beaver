@@ -78,4 +78,3 @@ private:
 #endif // ZT_CONTROLLER_USE_LIBPQ
 
 #endif // ZT_CONTROLLER_RABBITMQ_HPP
-

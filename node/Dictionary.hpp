@@ -387,7 +387,7 @@ public:
 		return this->add(key,(value) ? "1" : "0",1);
 	}
 
-	/** 
+	/**
 	 * Add a 64-bit integer (unsigned) as a hex value
 	 */
 	inline bool add(const char *key,uint64_t value)
@@ -396,7 +396,7 @@ public:
 		return this->add(key,Utils::hex(value,tmp),-1);
 	}
 
-	/** 
+	/**
 	 * Add a 64-bit integer (unsigned) as a hex value
 	 */
 	inline bool add(const char *key,int64_t value)
@@ -410,7 +410,7 @@ public:
 		}
 	}
 
-	/** 
+	/**
 	 * Add a 64-bit integer (unsigned) as a hex value
 	 */
 	inline bool add(const char *key,const Address &a)

@@ -32,7 +32,7 @@
 #include <assert.h>
 
 namespace ZeroTier {
-    
+
 uint16_t calc_checksum (uint16_t *addr, int len)
 {
     int count = len;
@@ -56,10 +56,10 @@ uint16_t calc_checksum (uint16_t *addr, int len)
     while (sum >> 16) {
         sum = (sum & 0xffff) + (sum >> 16);
     }
-    
+
     // Checksum is one's compliment of sum.
     answer = ~sum;
-    
+
     return (answer);
 }
 
@@ -78,14 +78,14 @@ struct _option {
     {
         memset(mac, 0, sizeof(mac));
     }
-    
+
     uint8_t type;
     uint8_t length;
     uint8_t mac[6];
 };
 
 struct _neighbor_solicitation {
-    _neighbor_solicitation() 
+    _neighbor_solicitation()
         : type(135)
         , code(0)
         , checksum(0)

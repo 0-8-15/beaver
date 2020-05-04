@@ -657,7 +657,7 @@ typedef struct
 
 /**
  * Internal node statistics
- * 
+ *
  * This structure is subject to change between versions.
  */
 typedef struct

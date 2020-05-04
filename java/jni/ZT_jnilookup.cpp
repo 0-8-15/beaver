@@ -47,9 +47,9 @@ JniLookup::~JniLookup()
 
 
 void JniLookup::setJavaVM(JavaVM *jvm)
-{ 
+{
     LOGV("Assigned JVM to object");
-    m_jvm = jvm; 
+    m_jvm = jvm;
 }
 
 

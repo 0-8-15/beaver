@@ -105,7 +105,7 @@ GetDebugLine (
     __in const int len
     );
 
-#else 
+#else
 
 #define DEBUGP(fmt)
 #define DUMP_PACKET(prefix, data, len)

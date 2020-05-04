@@ -109,7 +109,7 @@ namespace WinUI
 
         private void onCopyCut(object sender, DataObjectCopyingEventArgs e)
         {
-            
+
         }
 
         private void joinButton_Click(object sender, RoutedEventArgs e)

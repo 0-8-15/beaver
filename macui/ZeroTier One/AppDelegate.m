@@ -126,7 +126,7 @@
         NSLog(@"Can't get view.  Uh oh.");
         return;
     }
-    
+
     [self.networkListPopover showRelativeToRect:frame
                                          ofView:button
                                   preferredEdge:NSMinYEdge];
@@ -155,7 +155,7 @@
         NSLog(@"Can't get view.  Uh oh.");
         return;
     }
-    
+
     [self.joinNetworkPopover showRelativeToRect:button.bounds
                                          ofView:button
                                   preferredEdge:NSMinYEdge];
@@ -210,7 +210,7 @@
         NSLog(@"Can't get view.  Uh oh.");
         return;
     }
-    
+
     [self.aboutPopover showRelativeToRect:button.bounds
                                    ofView:button
                             preferredEdge:NSMinYEdge];

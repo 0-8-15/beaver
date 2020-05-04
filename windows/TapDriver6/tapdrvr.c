@@ -229,4 +229,3 @@ Return Value:
 
     DEBUGP (("[TAP] <-- TapDriverUnload\n"));
 }
-

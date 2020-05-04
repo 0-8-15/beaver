@@ -229,4 +229,3 @@ This returns a JSON object containing all member IDs as keys and their `memberRe
 | vProto                | integer       | Most recently known protocl version               | no       |
 
 Note that managed IP assignments are only used if they fall within a managed route. Otherwise they are ignored.
-

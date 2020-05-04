@@ -39,7 +39,7 @@ public class Node {
         try {
     		System.loadLibrary("ZeroTierOneJNI");
         } catch (UnsatisfiedLinkError e) {
-            try { 
+            try {
                 if(System.getProperty("os.name").startsWith("Windows")) {
                     System.out.println("Arch: " + System.getProperty("sun.arch.data.model"));
                     if(System.getProperty("sun.arch.data.model").equals("64")) {
@@ -63,7 +63,7 @@ public class Node {
     /**
      * Node ID for JNI purposes.
      * Currently set to the now value passed in at the constructor
-     * 
+     *
      * -1 if the node has already been closed
      */
     private long nodeId;
@@ -75,7 +75,7 @@ public class Node {
     private final VirtualNetworkFrameListener frameListener;
     private final VirtualNetworkConfigListener configListener;
     private final PathChecker pathChecker;
-    
+
     /**
      * Create a new ZeroTier One node
      *
@@ -87,7 +87,7 @@ public class Node {
      * @param putListener User written intstance of the {@link DataStorePutListener} interface called to put objects in persistent storage.  This instance must be unique per Node object.
      * @param sender
      * @param eventListener User written instance of the {@link EventListener} interface to receive status updates and non-fatal error notices.  This instance must be unique per Node object.
-     * @param frameListener 
+     * @param frameListener
      * @param configListener User written instance of the {@link VirtualNetworkConfigListener} interface to be called when virtual LANs are created, deleted, or their config parameters change.  This instance must be unique per Node object.
      * @param pathChecker User written instance of the {@link PathChecker} interface. Not required and can be null.
      */
@@ -120,7 +120,7 @@ public class Node {
 
     /**
       * Close this Node.
-      * 
+      *
       * <p>The Node object can no longer be used once this method is called.</p>
       */
     public void close() {
@@ -158,7 +158,7 @@ public class Node {
         byte[] frameData,
         long[] nextBackgroundTaskDeadline) {
         return processVirtualNetworkFrame(
-            nodeId, now, nwid, sourceMac, destMac, etherType, vlanId, 
+            nodeId, now, nwid, sourceMac, destMac, etherType, vlanId,
             frameData, nextBackgroundTaskDeadline);
     }
 

@@ -30,10 +30,10 @@
  * used to actually read and write packets. The latter gets no IP config
  * and is only used for I/O. The behavior of feth is similar to the
  * veth pairs that exist on Linux.
- * 
+ *
  * The feth device has only existed since MacOS Sierra, but that's fairly
  * long ago in Mac terms.
- * 
+ *
  * I/O with feth must be done using two different sockets. The BPF socket
  * is used to receive packets, while an AF_NDRV (low-level network driver
  * access) socket must be used to inject. AF_NDRV can't read IP frames
@@ -41,20 +41,20 @@
  * been handled, and while BPF can inject its MTU for injected packets
  * is limited to 2048. AF_NDRV packet injection is required to inject
  * ZeroTier's large MTU frames.
- * 
+ *
  * Benchmarks show that this performs similarly to the old tap.kext driver,
  * and a kext is no longer required. Splitting it off into an agent will
  * also make it easier to have zerotier-one itself drop permissions.
- * 
+ *
  * All this stuff is basically undocumented. A lot of tracing through
  * the Darwin/XNU kernel source was required to figure out how to make
  * this actually work.
- * 
+ *
  * See also:
- * 
+ *
  * https://apple.stackexchange.com/questions/337715/fake-ethernet-interfaces-feth-if-fake-anyone-ever-seen-this
  * https://opensource.apple.com/source/xnu/xnu-4570.41.2/bsd/net/if_fake.c.auto.html
- * 
+ *
  */
 
 #include <stdio.h>
