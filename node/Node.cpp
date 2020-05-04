@@ -59,6 +59,7 @@ Node::Node(void *uptr,void *tptr,const struct ZT_Node_Callbacks *callbacks,int64
 	RR(&_RR),
 	_uPtr(uptr),
 	_networks(8),
+	_multipathMode(ZT_MULTIPATH_NONE), // TBD: maybe use something better?
 	_now(now),
 	_lastPingCheck(0),
 	_lastHousekeepingRun(0),
@@ -440,6 +441,43 @@ ZT_ResultCode Node::orbit(void *tptr,uint64_t moonWorldId,uint64_t moonSeed)
 	return ZT_RESULT_OK;
 }
 
+ZT_ResultCode Node::contactOrbits(void *tptr, unsigned int port)
+{
+  Node *_node = this;
+  // SharedPtr<Peer> p = _node->getPeer(tptr, moonWorldId);
+  std::vector<World> moons = _node->moons();
+  fprintf(stderr, "out of %d\n", moons.size());
+  for(unsigned int mi=0; mi<moons.size(); ++mi) { // spare me iterators verbosity
+    fprintf(stderr, "at index %d\n", mi);
+    std::vector<World::Root> r = moons[mi].roots();
+    fprintf(stderr, "with %d roots\n", r.size());
+    for(unsigned int ri=0; ri<r.size(); ++ri) {
+      char buf[ZT_IDENTITY_STRING_BUFFER_LENGTH];
+      r[ri].identity.toString(false, buf);
+      fprintf(stderr, "key %s\n", buf);
+      Peer p(_node->RR, _node->identity(), r[ri].identity);
+      std::vector<InetAddress> addrs = r[ri].stableEndpoints;
+      fprintf(stderr, "has %d addresses\n", addrs.size());
+      for(unsigned int ai=0; ai<addrs.size(); ++ai) {
+        char bug[64];
+        addrs[ai].toString(buf);
+        fprintf(stderr, "   %s\n", buf);
+        p.attemptToContactAt(tptr, port, addrs[ai], _now, false);
+      }
+    }
+  }
+  return ZT_RESULT_OK;
+}
+
+void Node::contactPeerAt(void *tptr, unsigned int port, const char* id, const InetAddress &atAddress, int64_t now)
+{
+  Node *_node = this;
+  Identity key(id);
+  Peer p(_node->RR, _node->identity(), key);
+  p.attemptToContactAt(tptr, port, atAddress, now, true);
+}
+
+
 ZT_ResultCode Node::deorbit(void *tptr,uint64_t moonWorldId)
 {
 	RR->topology->removeMoon(tptr,moonWorldId);
@@ -600,7 +638,8 @@ void Node::setNetconfMaster(void *networkControllerInstance)
 /* Node methods used only within node/                                      */
 /****************************************************************************/
 
-bool Node::shouldUsePathForZeroTierTraffic(void *tPtr,const Address &ztaddr,const int64_t localSocket,const InetAddress &remoteAddress)
+/*
+bool shouldUsePathForZeroTierTraffic(void *tPtr,const Address &ztaddr,const int64_t localSocket,const InetAddress &remoteAddress)
 {
 	if (!Path::isAddressValidForPath(remoteAddress))
 		return false;
@@ -624,6 +663,45 @@ bool Node::shouldUsePathForZeroTierTraffic(void *tPtr,const Address &ztaddr,cons
 	}
 
 	return ( (_cb.pathCheckFunction) ? (_cb.pathCheckFunction(reinterpret_cast<ZT_Node *>(this),_uPtr,tPtr,ztaddr.toInt(),localSocket,reinterpret_cast<const struct sockaddr_storage *>(&remoteAddress)) != 0) : true);
+}
+//*/
+
+bool Node::shouldUsePathForZeroTierTraffic(void *tPtr,const Address &ztaddr,const int64_t localSocket,const InetAddress &remoteAddress)
+{
+  bool result = true;
+
+  {
+	if (!Path::isAddressValidForPath(remoteAddress))
+		result = false;
+
+	if (RR->topology->isProhibitedEndpoint(ztaddr,remoteAddress))
+		result = false;
+
+	{
+		Mutex::Lock _l(_networks_m);
+		Hashtable< uint64_t,SharedPtr<Network> >::Iterator i(_networks);
+		uint64_t *k = (uint64_t *)0;
+		SharedPtr<Network> *v = (SharedPtr<Network> *)0;
+		while (i.next(k,v)) {
+			if ((*v)->hasConfig()) {
+				for(unsigned int k=0;k<(*v)->config().staticIpCount;++k) {
+					if ((*v)->config().staticIps[k].containsAddress(remoteAddress))
+						result = false;
+				}
+			}
+		}
+	}
+
+	result = result && ( (_cb.pathCheckFunction) ? (_cb.pathCheckFunction(reinterpret_cast<ZT_Node *>(this),_uPtr,tPtr,ztaddr.toInt(),localSocket,reinterpret_cast<const struct sockaddr_storage *>(&remoteAddress)) != 0) : true);
+  }
+
+  if(!result) { // DEBUG TODO
+    char buf[64];
+    uint64_t a = ztaddr.toInt();
+    remoteAddress.toString(buf);
+    fprintf(stderr, "shouldUsePathForZeroTierTraffic: %s %lx address %s\n", result ? "used" : "DROPPED", a, buf);
+  }
+  return result;
 }
 
 uint64_t Node::prng()
@@ -901,6 +979,26 @@ enum ZT_ResultCode ZT_Node_deorbit(ZT_Node *node,void *tptr,uint64_t moonWorldId
 {
 	try {
 		return reinterpret_cast<ZeroTier::Node *>(node)->deorbit(tptr,moonWorldId);
+	} catch ( ... ) {
+		return ZT_RESULT_FATAL_ERROR_INTERNAL;
+	}
+}
+
+enum ZT_ResultCode ZT_Node_contact_orbits(ZT_Node *node, void *tptr, unsigned int port)
+{
+	try {
+		return reinterpret_cast<ZeroTier::Node *>(node)->contactOrbits(tptr, port);
+	} catch ( ... ) {
+		return ZT_RESULT_FATAL_ERROR_INTERNAL;
+	}
+}
+
+enum ZT_ResultCode ZT_Node_contact_peer(ZT_Node *node, void *tptr, unsigned int port,
+                          const char* id, const struct sockaddr_storage *addr, int64_t now)
+{
+	try {
+		reinterpret_cast<ZeroTier::Node *>(node)->contactPeerAt(tptr, port, id, addr, now);
+                return ZT_RESULT_OK;
 	} catch ( ... ) {
 		return ZT_RESULT_FATAL_ERROR_INTERNAL;
 	}

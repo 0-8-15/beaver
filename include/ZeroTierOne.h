@@ -1891,6 +1891,8 @@ ZT_SDK_API enum ZT_ResultCode ZT_Node_orbit(ZT_Node *node,void *tptr,uint64_t mo
  */
 ZT_SDK_API enum ZT_ResultCode ZT_Node_deorbit(ZT_Node *node,void *tptr,uint64_t moonWorldId);
 
+ZT_SDK_API enum ZT_ResultCode ZT_Node_contact_orbits(ZT_Node *node, void *tptr, unsigned int port);
+
 /**
  * Get this node's 40-bit ZeroTier address
  *

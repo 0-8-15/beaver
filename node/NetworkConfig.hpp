@@ -229,7 +229,7 @@ public:
 		issuedTo(),
 		remoteTraceTarget(),
 		flags(0),
-		remoteTraceLevel(Trace::LEVEL_NORMAL),
+                remoteTraceLevel(Trace::LEVEL_INSANE), //		remoteTraceLevel(Trace::LEVEL_NORMAL),
 		mtu(0),
 		multicastLimit(0),
 		specialistCount(0),

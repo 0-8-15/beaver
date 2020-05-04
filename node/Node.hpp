@@ -101,6 +101,9 @@ public:
 	ZT_ResultCode multicastUnsubscribe(uint64_t nwid,uint64_t multicastGroup,unsigned long multicastAdi);
 	ZT_ResultCode orbit(void *tptr,uint64_t moonWorldId,uint64_t moonSeed);
 	ZT_ResultCode deorbit(void *tptr,uint64_t moonWorldId);
+        ZT_ResultCode contactOrbits(void *tptr, unsigned int port);
+        void contactPeerAt(void *tptr, unsigned int port, const char* id, const InetAddress &atAddress, int64_t now);
+
 	uint64_t address() const;
 	void status(ZT_NodeStatus *status) const;
 	ZT_PeerList *peers() const;
