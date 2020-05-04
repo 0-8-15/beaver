@@ -1,3 +1,8 @@
+Onetierzero
+===========
+
+Onetierzero is a fork from zerotier just before the license change.  Hence GPLv3 or later.
+
 ZeroTier - Global Area Networking
 ======
 
