@@ -13,6 +13,7 @@ INCLUDES?=
 DEFS?=
 LDLIBS?=
 DESTDIR?=
+NOSYS?=DONT_USE_SYS_LIBS
 
 include objects.mk
 ONE_OBJS+=osdep/LinuxEthernetTap.o
@@ -28,7 +29,7 @@ TIMESTAMP=$(shell date +"%Y%m%d%H%M")
 # otherwise build into binary as done on Mac and Windows.
 ONE_OBJS+=osdep/PortMapper.o
 override DEFS+=-DZT_USE_MINIUPNPC
-MINIUPNPC_IS_NEW_ENOUGH=$(shell grep -sqr '.*define.*MINIUPNPC_VERSION.*"2..*"' /usr/include/miniupnpc/miniupnpc.h && echo 1)
+MINIUPNPC_IS_NEW_ENOUGH=$(NOSYS)$(shell grep -sqr '.*define.*MINIUPNPC_VERSION.*"2..*"' /usr/include/miniupnpc/miniupnpc.h && echo 1)
 #MINIUPNPC_IS_NEW_ENOUGH=$(shell grep -sqr '.*define.*MINIUPNPC_VERSION.*"2.."' /usr/include/miniupnpc/miniupnpc.h && echo 1)
 ifeq ($(MINIUPNPC_IS_NEW_ENOUGH),1)
 	override DEFS+=-DZT_USE_SYSTEM_MINIUPNPC
@@ -37,7 +38,7 @@ else
 	override DEFS+=-DMINIUPNP_STATICLIB -DMINIUPNPC_SET_SOCKET_TIMEOUT -DMINIUPNPC_GET_SRC_ADDR -D_BSD_SOURCE -D_DEFAULT_SOURCE -D_XOPEN_SOURCE=600 -DOS_STRING=\"Linux\" -DMINIUPNPC_VERSION_STRING=\"2.0\" -DUPNP_VERSION_STRING=\"UPnP/1.1\" -DENABLE_STRNATPMPERR
 	ONE_OBJS+=ext/miniupnpc/connecthostport.o ext/miniupnpc/igd_desc_parse.o ext/miniupnpc/minisoap.o ext/miniupnpc/minissdpc.o ext/miniupnpc/miniupnpc.o ext/miniupnpc/miniwget.o ext/miniupnpc/minixml.o ext/miniupnpc/portlistingparse.o ext/miniupnpc/receivedata.o ext/miniupnpc/upnpcommands.o ext/miniupnpc/upnpdev.o ext/miniupnpc/upnperrors.o ext/miniupnpc/upnpreplyparse.o
 endif
-ifeq ($(wildcard /usr/include/natpmp.h),)
+ifeq ($(NOSYS)$(wildcard /usr/include/natpmp.h),)
 	ONE_OBJS+=ext/libnatpmp/natpmp.o ext/libnatpmp/getgateway.o
 else
 	LDLIBS+=-lnatpmp
@@ -304,8 +305,8 @@ zerotier-cli: zerotier-one
 	ln -sf zerotier-one zerotier-cli
 
 libzerotiercore.a:	FORCE
-	make CFLAGS="-O3 -fstack-protector -fPIC" CXXFLAGS="-O3 -std=c++11 -fstack-protector -fPIC" $(CORE_OBJS)
-	ar rcs libzerotiercore.a $(CORE_OBJS)
+	make CFLAGS="-O3 -fstack-protector -fPIC" CXXFLAGS="-O3 -std=c++11 -fstack-protector -fPIC" $(CORE_OBJS) $(ONE_OBJS)
+	ar rcs libzerotiercore.a $(CORE_OBJS) $(ONE_OBJS)
 	ranlib libzerotiercore.a
 
 core: libzerotiercore.a
