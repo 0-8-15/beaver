@@ -3,6 +3,12 @@ Onetierzero
 
 Onetierzero is a fork from zerotier just before the license change.  Hence GPLv3 or later.
 
+## ISSUES
+
+1. `Makefile`: FIXME: ZT_DEBUG=1 is currently required.  Otherwise the build hangs!. (2020-05-31)
+
+----
+
 ZeroTier - Global Area Networking
 ======
 
