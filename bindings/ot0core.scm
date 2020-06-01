@@ -184,7 +184,7 @@ END
       ,fail)
     (lambda () (%ot0-post ,expr))))
 
-;; ZT event callback (ot0-event node userptr thr event payload)
+;; event callback (ot0-event node userptr thr event payload)
 
 (define-c-constant ZT_EVENT_UP int "ZT_EVENT_UP")
 (define-c-constant ZT_EVENT_OFFLINE int "ZT_EVENT_OFFLINE")
@@ -725,15 +725,14 @@ END
 (define (ot0-join network) ;; EXPORT
   (define dojoin (OT0-c-safe-lambda (ot0-node unsigned-int64) int "___return(ZT_Node_join(___arg1, ___arg2, NULL, NULL));"))
   (assert-ot0-up! ot0-join)
-  (or
-   (eqv? (begin-ot0-exclusive (dojoin (ot0-prm-ot0 %%ot0-prm) network)) 0)
-   (error "ot0-join: failed for with rc" network rc)))
+  (let ((rc (begin-ot0-exclusive (dojoin (ot0-prm-ot0 %%ot0-prm) network))))
+    (or (eqv? rc 0) (error "ot0-join: failed for with rc" network rc))))
 
 (define (ot0-leave network) ;; EXPORT
   (define doit (OT0-c-safe-lambda (ot0-node unsigned-int64) int "___return(ZT_Node_leave(___arg1, ___arg2, NULL, NULL));"))
   (assert-ot0-up! ot0-leave)
-  (or (eqv? (begin-ot0-exclusive (doit network)) 0)
-      (error "ot0-leave: failed for with rc" network rc)))
+  (let ((rc (begin-ot0-exclusive (doit network))))
+    (or (eqv? rc 0) (error "ot0-leave: failed for with rc" network rc))))
 
 (define (ot0-multicast-subscribe network group #!optional (adi 0)) ;; EXPORT
   (define doit
@@ -741,8 +740,8 @@ END
      (ot0-node unsigned-int64 unsigned-int64 unsigned-int64) int
      "___return(ZT_Node_multicastSubscribe(___arg1, NULL, ___arg2, ___arg3, ___arg4));"))
   (assert-ot0-up! ot0-multicast-subscribe)
-  (or (eqv? (begin-ot0-exclusive (doit (ot0-prm-ot0 %%ot0-prm) network group adi)) 0)
-      (error "ot0-multicast-subscribe: failed for with rc" network rc)))
+  (let ((rc (begin-ot0-exclusive (doit (ot0-prm-ot0 %%ot0-prm) network group adi))))
+    (or (eqv? rc 0) (error "ot0-multicast-subscribe: failed for with rc" network rc))))
 
 (define (ot0-multicast-unsubscribe network group #!optional (adi 0)) ;; EXPORT
   (define doit
@@ -750,8 +749,8 @@ END
      (ot0-node unsigned-int64 unsigned-int64 unsigned-int64) int
      "___return(ZT_Node_multicastUnsubscribe(___arg1, ___arg2, ___arg3, ___arg4));"))
   (assert-ot0-up! ot0-multicast-unsubscribe)
-  (or (eqv? (begin-ot0-exclusive (doit (ot0-prm-ot0 %%ot0-prm) network group adi)) 0)
-      (error "ot0-multicast-unsubscribe: failed for with rc" network rc)))
+  (let ((rc (begin-ot0-exclusive (doit (ot0-prm-ot0 %%ot0-prm) network group adi))))
+    (or (eqv? rc 0) (error "ot0-multicast-unsubscribe: failed for with rc" network rc))))
 
 ;;* Inspection
 

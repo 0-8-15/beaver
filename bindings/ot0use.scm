@@ -132,7 +132,7 @@
           #;(debug 'remaddr-is-still-ipv4? (internet-socket-address? remaddr))
           #;(debug 'wire-send-via (socket-address->string remaddr))
           #;(eqv? (send-message udp u8 0 #f 0 remaddr) len)
-          (ot0/after-safe-return 0 (maybe-async (debug 'wire-sent (ot0cli-udp-send-message/sa udp remaddr u8))))))
+          (ot0/after-safe-return 0 (begin #;maybe-async (debug 'wire-sent (ot0cli-udp-send-message/sa udp remaddr u8))))))
        (else (debug 'wire-send-via/blocked (socket-address->string remaddr)) 1))))
    (else "address not yet handled" 1)))
 
@@ -144,7 +144,7 @@
        ((ot0cli-wire-address-enabled? addr)
         (let ((u8 (make-u8vector len)))
           (u8vector-copy-from-ptr! u8 0 data 0 len)
-          (ot0/after-safe-return 0 (maybe-async (ot0cli-udp-send-message/sa udp remaddr u8)))))
+          (ot0/after-safe-return 0 (begin #;maybe-async (ot0cli-udp-send-message/sa udp remaddr u8)))))
        (else (debug 'wire-send-via/blocked (socket-address->string remaddr)) 1))))
    (else "address not yet handled" 1)))
 
@@ -152,9 +152,9 @@
 
 (define (ot0cli-ot0-wire-trace-toggle!)
   (on-ot0-wire-packet-send
-   (if (eq? (on-ot0-wire-packet-send) on-ot0-wire-packet-send/default)
-       on-ot0-wire-packet-send/debug
-       on-ot0-wire-packet-send/default)))
+   (if (eq? (on-ot0-wire-packet-send) ot0cli-ot0-wire-packet-send/default)
+       ot0cli-ot0-wire-packet-send/debug
+       ot0cli-ot0-wire-packet-send/default)))
 
 (define (make-ot0-ad-hoc-network-interface nwid ndid port)
   (let ((nif (lwip-make-netif (lwip-mac:host->network (ot0-network+node->mac nwid ndid)))))

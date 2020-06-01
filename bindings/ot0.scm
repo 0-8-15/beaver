@@ -75,7 +75,7 @@ END
        (error "illegal u8vector" ,proc ,arg ,vec)))
 
 (define (c25519-keypair-secret-key kp) ;; EXPORT
-  (%ot0-u8vector-range-assert s c25519-keypair->sk kp OT0_C25519_PUBLIC_KEY_SIZE OT0_C25519_PRIVATE_KEY_SIZE)
+  (%ot0-u8vector-range-assert 1 c25519-keypair-secret-key kp OT0_C25519_PUBLIC_KEY_SIZE OT0_C25519_PRIVATE_KEY_SIZE)
   (subu8vector kp OT0_C25519_PUBLIC_KEY_SIZE (u8vector-length kp)))
 
 (define (ot0-C25519-key-agree! key pk sk) ;; EXPORT

@@ -40,7 +40,7 @@ SYS_ROOT=/home/u/.cache/lambdanative/linux
 
 GSC=$(SYS_ROOT)/bin/gsc
 
-GSCFLAGS= # -debug
+GSCFLAGS= -report -track-scheme # -debug
 
 GSCINCL=$(SYS_ROOT)/include
 

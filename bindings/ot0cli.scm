@@ -90,7 +90,7 @@
    (lambda (o n)
      ;; (println "switching from " o " to " n)
      (if o (close-port (port)))
-     (and n (port (open-udp2 spec))))))
+     (and n (port (open-udp2 n))))))
 
 (define-pin udp-services
   initial: '()
@@ -138,7 +138,7 @@
      (cond
       ((eqv? fam 10) (values (socket-address6-ip6addr to) (socket-address6-port to)))
       ((eqv? fam 2) (values (socket-address4-ip4addr to) (socket-address4-port to)))
-      (else (error "illegal proocol family" fam)))
+      (else (error "illegal protocol family" fam)))
      (ot0cli-udp-send-message via addr port data))))
 
 ;;;* OT0
@@ -516,12 +516,12 @@
       "register UDP \"service\" {ot0} on {port-spec}"
       (let ((port-settings (call-with-input-string PORT-SPEC read)))
         (match
-         service
+         SERVICE
          ((or "ot0" "ot0service") (ot0-server-start! port-settings))
          (else
           (let ((service-procedure (%string->well-known-procedure SERVICE))
                 (reference (make-pin)))
-            (unless (procedure? service-procedure) (error "illegal service" service))
+            (unless (procedure? service-procedure) (error "illegal service" SERVICE))
             (wire! reference post: (udp-wire-service reference service-procedure)) )))
         (continue! more)))
      (("control" PORT OPTIONS..PERIOD ...)
@@ -675,7 +675,7 @@
        (('edge: . x) (begin (set! replicates (append replicates (list x)))
                             (make-vertex** more key-help? loop fail)))
        ('done (cont
-               (ot0-make-vertex nonce: nonce update-pk: update-pk kp: kp replicates: replicates)
+               (ot0-make-vertex nonce: nonce update-pk: (or update-pk kp) kp: kp replicates: replicates)
                more))
        (#f (make-vertex** more key-help? loop fail))
        (_ (error "vertex arguments did not parse" more more)))))
