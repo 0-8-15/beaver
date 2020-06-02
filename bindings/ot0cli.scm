@@ -467,6 +467,41 @@
    (if old (tcp-service-unregister! old))
    (if new (tcp-service-register! new ot0cli-control-server))))
 
+(define (%ot0cli-client-commands! args key-help? continue! fail)
+  (define (%common* type unit reference msg cont more)
+    (let ((unit (call-with-input-string unit read))
+          (reference (call-with-input-string reference read)))
+      (ot0-send! type unit reference (object->u8vector msg)))
+    (cont more))
+  (define *ot0client-commands!
+    (match-lambda/doc+
+     help fail
+     ;; (more "" (continue! more)) #f
+     "client command did not parse" "-s"
+     (((or "q" "query" "get") UNIT NUMBER MSG more ...)
+      "Query UNIT with reference NUMBER (a 62 bit natural) and MSG."
+      (%common* 'query UNIT NUMBER MSG *ot0client-commands! more))
+     (((or "r" "request" "p" "post") UNIT NUMBER MSG more ...)
+      "Post request to UNIT with reference NUMBER (a 62 bit natural) and MSG."
+      (%common* 'post UNIT NUMBER MSG *ot0client-commands! more))
+     (((or "d" "data" "a" "answer") UNIT NUMBER MSG more ...)
+      "Answer with MSG as result data to UNIT with reference NUMBER (a 62 bit natural)."
+      (%common* 'result UNIT NUMBER MSG *ot0client-commands! more))
+     (((or "e" "error" "c" "condition") UNIT NUMBER MSG more ...)
+      "Inform UNIT with reference to NUMBER (a 62 bit natural) about exceptional error condition MSG."
+      (%common* 'condition UNIT NUMBER MSG *ot0client-commands! more))
+     (("send" (and (or "q" "query" "r" "request" "d" "data" "c" "condition") TYPE) UNIT NUMBER MSG more ...)
+      "Send MSG with TYPE and reference NUMBER (a 62 bit natural) to UNIT"
+      (let ((type (match TYPE
+                         ((or "q" "query") 'query)
+                         ((or "r" "request") 'post)
+                         ((or "d" "data") 'data)
+                         ((or "c" "condition") 'error))))
+        (%common* 'condition UNIT NUMBER MSG *ot0client-commands! more)))
+     (((? PERIOD?) more ...) "leave \"-send\" mode and continue with more..." (continue! more))
+     (() "" (continue! '()))))
+  (*ot0client-commands! args))
+
 (define (ot0cli-services! args key-help? continue! fail)
   (define *ot0commands!
     (match-lambda/doc+
@@ -502,10 +537,16 @@
       (let ((ndid (call-with-input-string JUNCTION read)))
         (ot0-deorbit ndid)
         (*ot0commands! more)))
-     (("send:" UNIT U64 MSG more ...) "Send MSG ith key U64 to UNIT"
-      (let ((ndid (call-with-input-string UNIT read))
-            (key (call-with-input-string U64 read)))
-        (ot0-send ndid key (object->u8vector MSG))
+     (("send:" (and (or "q" "query" "r" "request" "d" "data" "c" "condition") TYPE) UNIT NUMBER MSG more ...)
+      "Send MSG with TYPE and reference NUMBER (a 62 bit natural) to UNIT"
+      (let ((unit (call-with-input-string UNIT read))
+            (type (match TYPE
+                         ((or "q" "query") 'query)
+                         ((or "r" "request") 'post)
+                         ((or "d" "data") 'data)
+                         ((or "c" "condition") 'error)))
+            (reference (call-with-input-string NUMBER read)))
+        (ot0-send! type unit reference (object->u8vector MSG))
         (*ot0commands! more)))
      (("status" more ...) "print status information"
       (begin (ot0cli-ot0-display-status!) (*ot0commands! more)))))
@@ -826,6 +867,8 @@
      (("-data" more ...) "data tool" (ot0data! more))
      (("-adm" more ...) "data directory administration commands"
       (ot0cli-admin! more key-help? ot0command-line! error-with-unhandled-params))
+     (((or "-s" "-send") more ...) "send more... commands to ot0 units (continue after PERIOD)"
+      (%ot0cli-client-commands! more key-help? ot0command-line! error-with-unhandled-params))
      (((or "-l" "-script") SCRIPT more ...) "load SCRIPT file and continue with more..."
       (begin (load SCRIPT) (ot0command-line! more)))
      (("-scripts" SCRIPT..PERIOD ...) "load SCRIPT..PERIOD files"

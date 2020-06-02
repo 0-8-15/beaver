@@ -217,6 +217,30 @@ END
 
 (define-custom on-ot0-recv #f) ;; EXPORT HOOK - user messages
 
+(define-macro (%ot0-message-tag-type tag)
+  `(case (bitwise-and ,tag 3)
+     ((0) 'query)
+     ((1) 'request)
+     ((2) 'result)
+     ((3) 'condition)))
+
+(define-macro (%ot0-message-tag-reference tag)
+  `(arithmetic-shift ,tag -2))
+
+(define (ot0-make-message-tag type reference)
+  (bitwise-ior
+   (arithmetic-shift reference 2)
+   (case type
+     ((query) 0)
+     ((post request) 1)
+     ((result data) 2)
+     ((error condition) 3)
+     (else (error "ot0-make-message-tag : illegal type" type)))))
+
+(define (ot0-message-tag-type tag) (%ot0-message-tag-type tag))
+
+(define (ot0-message-tag-reference tag) (%ot0-message-tag-reference tag))
+
 (c-define
  (zt_recv node userptr thr payload)
  (ot0-node void* void* ot0-message)
@@ -225,13 +249,16 @@ END
   ((procedure? (on-ot0-recv))
    (let ((size ((c-lambda (ot0-message) size_t "___return(___arg1->length);") payload))
          (from ((c-lambda (ot0-message) size_t "___return(___arg1->origin);") payload))
-         (type ((c-lambda (ot0-message) size_t "___return(___arg1->typeId);") payload)))
+         (tag ((c-lambda (ot0-message) size_t "___return(___arg1->typeId);") payload)))
      (let ((data (make-u8vector size)))
        ((c-lambda
          (scheme-object ot0-message) void
          "memcpy(___CAST(void *,___BODY_AS(___arg1,___tSUBTYPED)), ___arg2->data, ___arg2->length);")
         data payload)
-       (%%checked on-ot0-recv ((on-ot0-recv) from type data) #t))))))
+       (%%checked
+        on-ot0-recv
+        ((on-ot0-recv) (%ot0-message-tag-type tag) from (%ot0-message-tag-reference tag) data)
+        #t))))))
 
 (c-declare #<<c-declare-end
 static void
@@ -694,7 +721,7 @@ END
   (begin-ot0-exclusive
    ((OT0-c-safe-lambda (ot0-node) void "ZT_Node_clearLocalInterfaceAddresses(___arg1);") (ot0-prm-ot0 %%ot0-prm))))
 
-(define (ot0-send! to type data) ;; EXPORT - send user message (u8vector)
+(define (ot0-send! type to reference data) ;; EXPORT - send user message (u8vector)
   (define doit
     (OT0-c-safe-lambda
      (ot0-node unsigned-int64 unsigned-int64 scheme-object size_t) bool #<<END
@@ -704,7 +731,7 @@ END
 ))
   (assert-ot0-up! ot0-send!)
   (begin-ot0-exclusive
-   (doit (ot0-prm-ot0 %%ot0-prm) to type data (u8vector-length data))))
+   (doit (ot0-prm-ot0 %%ot0-prm) to (ot0-make-message-tag type reference) data (u8vector-length data))))
 
 (define (ot0-orbit moon #!optional (seed 0)) ;; EXPORT
   (define doit

@@ -34,15 +34,15 @@
 
 (define ot0cli-on-ot0-received
   (box
-   (lambda (from type data)
-     (debug 'RECV-from (list from type))
+   (lambda (type from reference data)
+     (debug 'RECV-from (list type from reference (u8vector-length data)))
      #f)))
 
 (on-ot0-recv
- (lambda (from type data)
+ (lambda (type from reference data)
    ;; required to hide `ot0/after-safe-return` macro here.
    (let ((receiver (unbox ot0cli-on-ot0-received)))
-     (and receiver (ot0/after-safe-return #t (receiver from type data))))))
+     (and receiver (ot0/after-safe-return #t (receiver type from reference data))))))
 
 (define (ot0cli-ot0-event/debug node userptr thr event payload)
   (case event
