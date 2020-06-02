@@ -75,11 +75,11 @@ Topology::Topology(const RuntimeEnvironment *renv,void *tPtr) :
 	if (n > 0) {
 		try {
 			World cachedPlanet;
-			cachedPlanet.deserialize(Buffer<ZT_WORLD_MAX_SERIALIZED_LENGTH>(tmp,(unsigned int)n),0);
+			_planet.deserialize(Buffer<ZT_WORLD_MAX_SERIALIZED_LENGTH>(tmp,(unsigned int)n),0);
 			addWorld(tPtr,cachedPlanet,false);
-		} catch ( ... ) {} // ignore invalid cached planets
+		// ignore invalid cached planets
+		} catch ( ... ) { fprintf(stderr, "Topology: failed to load Origin"); }
 	}
-
 	World defaultPlanet;
 	{
 		Buffer<ZT_DEFAULT_WORLD_LENGTH> wtmp(ZT_DEFAULT_WORLD,ZT_DEFAULT_WORLD_LENGTH);
