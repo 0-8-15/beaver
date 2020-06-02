@@ -263,6 +263,8 @@
          (on-ot0-state-put put)))
     (ot0-node-init! udp (rcv<-udp udp) background-period: background-period)
     (for-each ot0-add-local-interface-address! local-interfaces)
+    (let ((origin (ot0cli-origin)))
+      (and origin (ot0-vertex-contact-all-edges! (u8vector->ot0-vertex origin))))
     (let ((joined
            (fold
             (lambda (nw r) (if (ot0-join nw) (cons nw r) r))

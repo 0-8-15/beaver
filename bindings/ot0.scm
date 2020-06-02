@@ -313,6 +313,29 @@ ___return(buf);")
 (define ot0-roots-add! (c-lambda (ot0-roots ot0-id) size_t "OT0_add_root"))
 (define ot0-roots-add-endpoint! (c-lambda (ot0-roots size_t OT0-socket-address) size_t "OT0_add_root_endpoint"))
 
+(define (ot0-vertex-edges obj #!optional (filter (lambda (x) #t)))
+  (define (ot0-edge-addresses obj n)
+    (define result '())
+    (let ((m (ot0-vertex/root-endpoints obj n)))
+      (do ((i 0 (+ i 1)))
+          ((eqv? i m) result)
+        (let ((sa (ot0-vertex/root-endpoint obj n i)))
+          (receive
+           (addr port)
+           (case (socket-address-family sa)
+             ((2) (values (socket-address4-ip4addr sa) (socket-address4-port sa)))
+             ((10) (values (socket-address6-ip6addr sa) (socket-address6-port sa)))
+             (else (values #f #f)))
+           (set! result (cons (list addr port) result)))))))
+  (let ((n (ot0-vertex-roots obj))
+        (result '()))
+    (do ((i 0 (+ 1 i)))
+        ((eqv? i n) (reverse! result))
+      (set! result
+            (cons (cons (ot0-id->string (ot0-vertex/root-id obj i) #f)
+                        (ot0-edge-addresses obj i))
+                  result)))))
+
 (define %ot0-make-vertex
   ;;(type nr roots timestamp update-pk signature-kp)
   (c-lambda
@@ -473,6 +496,16 @@ ___return(buf);")
   (newline))
 
 (include "ot0core.scm")
+
+(define (ot0-vertex-contact-all-edges! vertex)
+  (let ((origin-edges (ot0-vertex-edges vertex)))
+    (for-each
+     (lambda (edge)
+       (for-each
+        (lambda (addr)
+          (ot0-contact-peer (car edge) (apply internetX-address->socket-address addr)))
+        (cdr edge)))
+     origin-edges)))
 
 (ot0core-socket-address->string-set! ot0-socket-address->string)
 ;; FIXME: use a better version without malloc instead!
