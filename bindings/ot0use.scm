@@ -32,18 +32,23 @@
 
 ;;* EVENTS
 
-(define ot0cli-on-ot0-received (box #f))
-
-(on-ot0-recv
- (lambda (from type data)
+(define ot0cli-on-ot0-received
+  (box
+   (lambda (from type data)
    (case type
      ((2) ;; tcp test should connect back now
       (debug 'RECV-from:test (list from type))
       (let ((receiver (unbox ot0cli-on-ot0-received)))
         (and receiver (ot0/after-safe-return #t (receiver from type data)))))
      (else
-      (and receiver (ot0/after-safe-return #t (receiver from type data)))
-      #f))))
+      (debug 'RECV-from (list from type))
+      #f)))))
+
+(on-ot0-recv
+ (lambda (from type data)
+   ;; required to hide `ot0/after-safe-return` macro here.
+   (let ((receiver (unbox ot0cli-on-ot0-received)))
+     (and receiver (ot0/after-safe-return #t (receiver from type data))))))
 
 (define (ot0cli-ot0-event/debug node userptr thr event payload)
   (case event
@@ -118,7 +123,8 @@
   ;; FIXME: allocate IPv6 too!
   (cond
    ((internet-socket-address? remaddr)
-    (let ((addr (socket-address4-ip4addr remaddr)))
+    (let ((addr (socket-address4-ip4addr remaddr))
+          (port (socket-address4-port remaddr)))
       (thread-yield!) ;; KILLER!
       (##gc) ;; REALLY??
       (cond
@@ -132,21 +138,40 @@
           #;(debug 'remaddr-is-still-ipv4? (internet-socket-address? remaddr))
           #;(debug 'wire-send-via (socket-address->string remaddr))
           #;(eqv? (send-message udp u8 0 #f 0 remaddr) len)
-          (ot0/after-safe-return 0 (begin #;maybe-async (debug 'wire-sent (ot0cli-udp-send-message/sa udp remaddr u8))))))
+          (ot0/after-safe-return 0 (begin #;maybe-async (debug 'wire-sent (ot0cli-udp-send-message/no-lock udp addr port u8))))))
        (else (debug 'wire-send-via/blocked (socket-address->string remaddr)) 1))))
-   (else "address not yet handled" 1)))
-
-(define (ot0cli-ot0-wire-packet-send/default udp socket remaddr data len ttl)
-  (cond
-   ((internet-socket-address? remaddr)
-    (let ((addr (socket-address4-ip4addr remaddr)))
+   ((internet6-socket-address? remaddr)
+    (let ((addr (socket-address6-ip6addr remaddr))
+          (port (socket-address6-port remaddr)))
       (cond
        ((ot0cli-wire-address-enabled? addr)
         (let ((u8 (make-u8vector len)))
           (u8vector-copy-from-ptr! u8 0 data 0 len)
-          (ot0/after-safe-return 0 (begin #;maybe-async (ot0cli-udp-send-message/sa udp remaddr u8)))))
+          (ot0/after-safe-return 0 (begin #;maybe-async (ot0cli-udp-send-message/no-lock udp addr port u8)))))
        (else (debug 'wire-send-via/blocked (socket-address->string remaddr)) 1))))
-   (else "address not yet handled" 1)))
+   (else (error "ot0cli-ot0-wire-packet-send/debug : illegal address" remaddr) 1)))
+
+(define (ot0cli-ot0-wire-packet-send/default udp socket remaddr data len ttl)
+  (cond
+   ((internet-socket-address? remaddr)
+    (let ((addr (socket-address4-ip4addr remaddr))
+          (port (socket-address4-port remaddr)))
+      (cond
+       ((ot0cli-wire-address-enabled? addr)
+        (let ((u8 (make-u8vector len)))
+          (u8vector-copy-from-ptr! u8 0 data 0 len)
+          (ot0/after-safe-return 0 (begin #;maybe-async (ot0cli-udp-send-message/no-lock udp addr port u8)))))
+       (else (debug 'wire-send-via/blocked (socket-address->string remaddr)) 1))))
+   ((internet6-socket-address? remaddr)
+    (let ((addr (socket-address6-ip6addr remaddr))
+          (port (socket-address6-port remaddr)))
+      (cond
+       ((ot0cli-wire-address-enabled? addr)
+        (let ((u8 (make-u8vector len)))
+          (u8vector-copy-from-ptr! u8 0 data 0 len)
+          (ot0/after-safe-return 0 (begin #;maybe-async (ot0cli-udp-send-message/no-lock udp addr port u8)))))
+       (else (debug 'wire-send-via/blocked (socket-address->string remaddr)) 1))))
+   (else (error "ot0cli-ot0-wire-packet-send/default : illegal address" remaddr) 1)))
 
 (on-ot0-wire-packet-send ot0cli-ot0-wire-packet-send/default)
 

@@ -1130,7 +1130,7 @@ c-declare-end
   (define file-pattern-default
     (vector
      (lambda (home id) (string-append home "lock")) ;; lock file (TODO tentative half implemented)
-     (lambda (home id) (string-append home "name"))
+     (lambda (home id) (string-append home "identifier"))
      (lambda (home id) (string-append home "authentication"))
      (lambda (home id) (string-append home "origin"))
      (lambda (home id) (string-append home "junction/" (hexstr id 16)))

@@ -40,7 +40,7 @@ SYS_ROOT=/home/u/.cache/lambdanative/linux
 
 GSC=$(SYS_ROOT)/bin/gsc
 
-GSCFLAGS= -report -track-scheme # -debug
+GSCFLAGS= # -report -track-schemea # -debug
 
 GSCINCL=$(SYS_ROOT)/include
 
@@ -100,6 +100,40 @@ ot0: $(OT0_CLI_OBJECTS) $(OT0_OBJECTS) #libzerotiercore.a
 test: # Test It
 test: ot0
 	./ot0 -tests $(BINDINGS_DIR)/ot0-tests.scm : -exit
+
+testdata: # nome est omen
+testdata: z a b y
+
+z:
+	./ot0 -1-i z
+
+a b:
+	./ot0 -A $@
+
+IPADDR1=192.168.43.96
+IPADDR2=127.0.0.1
+OT0PORT=9994
+
+y: a b z
+	./ot0 -data vertex make y type: origin nonce: 23 kp: z edge: `cat a/identifier` \
+		$(IPADDR1) $(OT0PORT)  $(IPADDR2) $(OT0PORT) :
+	./ot0 -B a -adm origin:= y
+	./ot0 -B b -adm origin:= y
+
+
+OT0DBG?=-d t wire -d t ot0
+# OT0ADDIP?=local-address: 255.255.255.255 local-address: 127.0.0.1
+
+a-run:	# start 'a'
+a-run:
+	./ot0 -B a $(OT0DBG) -S control 9090 : -S ot0 start "\"$(IPADDR1):9994\"" $(OT0ADDIP) -repl
+
+# OT0B?=contact: `cat a/identifier` $(IPADDR1)/9994
+
+b-run:	# start 'b'
+b-run:
+	./ot0 -B b $(OT0DBG) -S control 9091 : -S ot0 start "\"$(IPADDR1):9995\"" $(OT0ADDIP) $(OT0B) -repl
+
 
 weg: force
 	-rm $(OT0_CLI_GAMBITC_FILES) $(OT0_GAMBITC_SOURCES) $(OT0_OBJECTS) $(OT0_CLI_OBJECTS)

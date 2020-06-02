@@ -130,6 +130,12 @@ END
       "char buf[64]; OT0_sockaddr_into_string(___arg1, buf); ___return(buf);")
      addr))))
 
+(define-macro (%ot0-sock-addr-post-process obj)
+  (let ((tmp (gensym)))
+    `(let ((,tmp ,obj))
+       (make-will ,tmp (c-lambda (OT0-nonnull-socket-address) void "OT0_free_sockaddr"))
+       ,tmp)))
+
 (define ot0-string->socket-address ;; MUST be freed!
   ;; FIXME: use a better version without malloc instead!
   (let ((free (c-lambda (OT0-nonnull-socket-address) void "OT0_free_sockaddr")))
@@ -137,6 +143,13 @@ END
       (let ((result ((c-lambda (char-string) OT0-socket-address "OT0_sockaddr_from_string") str)))
         (make-will result free)
         result))))
+
+(define (ot0-internetX-address->socket-address host port)
+  (%ot0-sock-addr-post-process
+   ((c-lambda
+     (scheme-object size_t unsigned-int16) OT0-socket-address
+     "___return(OT0_sockaddr_from_bytes_and_port(___BODY(___arg1),___arg2,___arg3));")
+    host (u8vector-length host) port)))
 
 (define ot0-socket-address-family
   (c-lambda

@@ -131,15 +131,11 @@
            (mutex-unlock! ump)
            result))))
 
-(define (ot0cli-udp-send-message/sa via to data)
-  (let ((fam (socket-address-family to)))
-    (receive
-     (addr port)
-     (cond
-      ((eqv? fam 10) (values (socket-address6-ip6addr to) (socket-address6-port to)))
-      ((eqv? fam 2) (values (socket-address4-ip4addr to) (socket-address4-port to)))
-      (else (error "illegal protocol family" fam)))
-     (ot0cli-udp-send-message via addr port data))))
+(define (ot0cli-udp-send-message/no-lock via to port data)
+  (udp-destination-set! to port via)
+  (udp-write-subu8vector data 0 (u8vector-length data) via)
+  ;; return success
+  0)
 
 ;;;* OT0
 
@@ -158,7 +154,7 @@
 ;;;** The Command Line Tool
 
 (define (with-output-to-secret-file fn thunk)
-  (with-output-to-file `(path: ,fn, permissions: #o600) thunk))
+  (with-output-to-file `(path: ,fn, permissions: #o400) thunk))
 
 (define (with-output-to-public-file fn thunk)
   (with-output-to-file `(path: ,fn, permissions: #o644) thunk))
@@ -252,18 +248,20 @@
    ((ot0-up?) (error (debug 'error "ot0-server already running")))
    ((not (ot0-context)) (error (debug 'error "context directory not set"))))
   (let ((result (PIN))
-        (udp (open-udp2 port-settings)))
+        (udp (open-udp port-settings)))
     (define (rcv<-udp port)
       (lambda ()
         (let* ((data (read port))
-               (from (udp-source-socket-info port)))
+               (src (udp-source-socket-info port))
+               (from (internetX-address->socket-address
+                      (socket-info-address src) (socket-info-port-number src))))
           (values data from))))
     (receive
      (get put) (ot0-make-default-state-handlers (ot0-state-file))
      (on-ot0-state-get get)
      (if (ot0cli-locked)
          (on-ot0-state-put put)))
-    (ot0-node-init! udp (rcv<-udp (mutex-specific udp)) background-period: background-period)
+    (ot0-node-init! udp (rcv<-udp udp) background-period: background-period)
     (for-each ot0-add-local-interface-address! local-interfaces)
     (let ((joined
            (fold
@@ -344,6 +342,9 @@
 ;; help.
 
 (define-macro (match-lambda/doc doc . clauses)
+  ;; TBD:performance: replace trailing '(sym ...) with '( . ,sym) but
+  ;; still print the original code (and remove leading and traileing
+  ;; parenthesis).
   (let* ((doc?
           (match-lambda
            ((? string?) #t)
@@ -360,11 +361,19 @@
         (match/doc:docstring
          (with-output-to-string
            (lambda ()
+             (define pp-match
+               (match-lambda
+                (() (display "NONE"))
+                ((syntax-pattern) (begin (write syntax-pattern) (newline)))
+                ((syntax-pattern . rest)
+                 (begin
+                   (write syntax-pattern)
+                   (unless (null? rest) (display " ") (pp-match rest))))))
              (define (pp/doc1 m str)
                (unless (equal? str "")
                        (if (null? m)
                            (display "NONE")
-                           (pp m (current-output-port)))
+                           (pp-match m))
                        (display "\t") (display str) (newline)))
              (define (pp/doc m doku)
                (match
@@ -470,7 +479,7 @@
       (let ((port-settings (call-with-input-string PORT-SPEC read)))
         (ot0-server-start! port-settings)
         (*ot0commands! more)))
-     (((or "local-ip:" "lip:") IPADDR more ...) "use also local IPADDR"
+     (((or "local-address:" "lip:") IPADDR more ...) "use also local IPADDR"
       (let ((addr (or (string->socket-address IPADDR)
                       (error "IP address did not parse" IPADDR))))
         (ot0-add-local-interface-address! addr)
@@ -596,9 +605,14 @@
 
 ;;;** Command Line Parser
 
-(define (ot0cli-1 args #!optional (finally replloop))
+(define (ot0cli-1 args #!optional (finally (lambda () #t)))
   (define %wait-for-services ##escape-from-ot0cli#wait-for-services)
   (define key-help? (lambda (s) (and (member s '("-h" "-help" "--help")) #t)))
+  (define refuse-help-key-as-file-name
+    (match-lambda
+     ((? key-help? key)
+      (error "cowardly refusing to create files/diretories matching the key for HELP" key))
+     (file-name file-name)))
   (define (cmd-line-parse-error) "command did not parse")
   (define (read-file-as-u8vector-or-fail key file)
     (or (read-file-as-u8vector file) (error "could not read file" key file)))
@@ -624,7 +638,10 @@
       ;; TODO: write to out-file <signature>.FILE where <signature>
       ;; covers the public key such that we can proove consistency
       ;; wrt. FILE's name.
-      (let* ((u8 (ot0-make-c25519-keypair))
+      (let* ((u8 (begin ;; DO NOT even provide an enforcement switch!
+                   (when (file-exists? FILE)
+                         (error "error file for keypair already exists" FILE))
+                   (ot0-make-c25519-keypair)))
              (out-file FILE))
         (with-output-to-secret-file
          out-file
@@ -675,7 +692,7 @@
        (('edge: . x) (begin (set! replicates (append replicates (list x)))
                             (make-vertex** more key-help? loop fail)))
        ('done (cont
-               (ot0-make-vertex nonce: nonce update-pk: (or update-pk kp) kp: kp replicates: replicates)
+               (ot0-make-vertex type: type nonce: nonce update-pk: (or update-pk kp) kp: kp replicates: replicates)
                more))
        (#f (make-vertex** more key-help? loop fail))
        (_ (error "vertex arguments did not parse" more more)))))
@@ -768,7 +785,11 @@
     (match-lambda/doc+
      help error-with-unhandled-params (cmd-line-parse-error) "<*ROOT*>"
      (("-1-i" FILE) "create key material in FILE and exit (shorthand for \"-c25519 make-kp FILE -exit\")"
-      (c25519! `("make-kp" ,FILE)))
+      (c25519! `("make-kp" ,(refuse-help-key-as-file-name FILE))))
+     (("-1-i" FILE . args) "" ;; not documented catches other help/error use cases
+      ;; TBD: move this case downwards to avoid useless matching
+      (begin (when (pair? args) (display "Warning: ignoring additional arguments: ") (pp args))
+             (c25519! `("make-kp" ,(refuse-help-key-as-file-name FILE)))))
      (("-A" DIR more ...) "Initialize context directory DIR."
       (if (ot0-context) (error "-A: once only and from the command line!")
           (begin
@@ -788,7 +809,17 @@
         (port-copy-through conn (current-output-port))
         (exit 0)))
      (("-D" more ...) "Daemonize (reserved, NYI)" (NYI "damonize"))
-     (("-E" more ...) "Ephemeral instance (reserved, NYI)" (NYI "ephemeral instance"))
+     (("-E" more ...) "Ephemeral instance (reserved, NYI)"
+      (match
+       more
+       (((? key-help?) . more) (NYI "help on ephemeral instance"))
+       (((or "in:" "using:" "dir:" "directory:") DIR . more)
+        (if (ot0-context) (error "-E: once only and from the command line!")
+            (begin
+              (ot0-init-context! (refuse-help-key-as-file-name DIR))
+              (ot0cli-admin! more key-help? ot0command-line! error-with-unhandled-params)
+              (finally))))
+       (() (NYI "ephemeral instance"))))
      (((or "-A" "-B" "-C")) "" (error "option requires an directory argument"))
      (("-status" more ...) "print status info" (print-status ot0command-line! more))
      (((or "-S" "-service") more ...) "service tool"
@@ -805,6 +836,19 @@
      (("-tests" SCRIPT..PERIOD ...) "load remaining SCRIPT..PERIOD files and report test results"
       (let ((then (lambda (files more) (for-each load files) (tests-end) (ot0command-line! more))))
         (cont-with-list-to-end-marker-and-rest SCRIPT..PERIOD then)))
+     (("-repl" (? key-help?) . more) "" ;; "magic": help key ot printed
+      (begin
+        (display "helpless here? try: ,? for help on commands ")
+        (display " or ")
+        (display "at least one character plus the TAB key for completion\n")
+        ;; take the help key out and retry
+        (ot0command-line! (cons "-repl" more))))
+     (("-repl" more ...) "enter repl (interactive command loop)"
+      (begin
+        (display "ignoring command line rest (TBD: better figure out how to continue):\n\t")
+        (display more) (display "\n\tremember ,? or see \"-repl -h\"\n")
+        (replloop)
+        (ot0command-line! more)))
      (("-wait") "wait for running services to exit" (%wait-for-services))
      (("-exit") "" (exit 0))
      (("-exit" CODE more ...) "exit now with optional CODE (default 0) more... is not evaluated, no final activity"
@@ -823,7 +867,7 @@
      (("-back" more ...) "end the transaction since last \"-kick\" and continue with more..." more)
      (("-d" more ...) "set debug option and continue"
       (set-debug! more key-help? ot0command-line! error-with-unhandled-params))
-     (() "continue with final activity (repl by default)" (finally))
+     (() "continue with final activity (none by default)" (finally))
      (((or "-h" "-help" "--help") KEY ...) "help on KEY default \"top-level\""
       (match
        KEY
