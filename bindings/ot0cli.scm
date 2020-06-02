@@ -131,12 +131,6 @@
            (mutex-unlock! ump)
            result))))
 
-(define (ot0cli-udp-send-message/no-lock via to port data)
-  (udp-destination-set! to port via)
-  (udp-write-subu8vector data 0 (u8vector-length data) via)
-  ;; return success
-  0)
-
 ;;;* OT0
 
 (define-pin ot0-online
@@ -445,7 +439,8 @@
            ".")
   (ot0cli-display-nifs)
   (println "Peer units:")
-  (pp (ot0-peers-info) (current-output-port)))
+  (pp (ot0-peers-info) (current-output-port))
+  (ot0cli-wire-statistics-print!))
 
 (define-pin ot0cli-control-server-port
   initial: #f
@@ -601,7 +596,8 @@
   (define (print-status*)
     (println "PERIOD token (regex): " (end-marker-source))
     (println "context directory: " (ot0-context) " kind: " (ot0-context-kind))
-    (print-debug-status*))
+    (print-debug-status*)
+    (if (ot0cli-server) (ot0cli-ot0-display-status!)))
   (print-status*))
 (set! s ot0cli-print-status)
 
@@ -898,4 +894,4 @@
       (ot0cli-1 `("-B" ,dir ,@cmd))
       (ot0cli-1 `("-B" ,dir ,@cmd))))
 
-(ot0cli-1 (cdr (command-line)))
+(ot0cli-1 (cdr (command-line)) (match (command-line) ((_) replloop) (_ (lambda () #t))))

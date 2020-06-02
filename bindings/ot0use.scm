@@ -35,14 +35,8 @@
 (define ot0cli-on-ot0-received
   (box
    (lambda (from type data)
-   (case type
-     ((2) ;; tcp test should connect back now
-      (debug 'RECV-from:test (list from type))
-      (let ((receiver (unbox ot0cli-on-ot0-received)))
-        (and receiver (ot0/after-safe-return #t (receiver from type data)))))
-     (else
-      (debug 'RECV-from (list from type))
-      #f)))))
+     (debug 'RECV-from (list from type))
+     #f)))
 
 (on-ot0-recv
  (lambda (from type data)
@@ -117,7 +111,34 @@
      (lambda (proc)
        (set! filters (remove (lambda (x) (eq? x proc)) filters))))))
 
-(define (ot0cli-ot0-wire-packet-send/debug udp socket remaddr data len ttl)
+(define-values
+  (%%ot0cli-wire-statistics-sent ot0cli-wire-statistics-print!)
+  (let ((stats (vector 0 0))) ;; totals for calls and size
+    (values
+     ;; %%ot0cli-wire-statistics-sent
+     (lambda (via addr port data)
+       ;; It MUST be KNOWN that this is ever only called in syncrhon context!
+       (vector-set! stats 0 (+ (vector-ref stats 0) 1))
+       (vector-set! stats 1 (+ (vector-ref stats 1) (u8vector-length data))))
+     ;; ot0cli-wire-statistics-print!
+     (lambda ()
+       (println "Total #packages: " (vector-ref stats 0)
+                " transferred bytes: " (vector-ref stats 1))))))
+
+(define-macro (%ot0-statistics:update-wire-send! via addr port data)
+  `(%%ot0cli-wire-statistics-sent via addr port data))
+
+(define (%ot0cli-ot-wire-packet-send via addr port data)
+  (%ot0-statistics:update-wire-send! via addr port data)
+  ;; TODO: maybe this could be done right now!?
+  (ot0/after-safe-return
+   0
+   (begin #;maybe-async
+     (udp-destination-set! addr port via)
+     (udp-write-subu8vector data 0 (u8vector-length data) via)
+     0)))
+
+(define (ot0cli-ot0-wire-packet-send/debug via socket remaddr data len ttl)
   (thread-yield!) ;; KILLER!
   ;; (debug 'wire-send-via socket)
   ;; FIXME: allocate IPv6 too!
@@ -137,8 +158,8 @@
           (thread-yield!) ;; KILLER!
           #;(debug 'remaddr-is-still-ipv4? (internet-socket-address? remaddr))
           #;(debug 'wire-send-via (socket-address->string remaddr))
-          #;(eqv? (send-message udp u8 0 #f 0 remaddr) len)
-          (ot0/after-safe-return 0 (begin #;maybe-async (debug 'wire-sent (ot0cli-udp-send-message/no-lock udp addr port u8))))))
+          #;(eqv? (send-message via u8 0 #f 0 remaddr) len)
+          (debug 'wire-sent (%ot0cli-ot-wire-packet-send via addr port u8))))
        (else (debug 'wire-send-via/blocked (socket-address->string remaddr)) 1))))
    ((internet6-socket-address? remaddr)
     (let ((addr (socket-address6-ip6addr remaddr))
@@ -147,11 +168,11 @@
        ((ot0cli-wire-address-enabled? addr)
         (let ((u8 (make-u8vector len)))
           (u8vector-copy-from-ptr! u8 0 data 0 len)
-          (ot0/after-safe-return 0 (begin #;maybe-async (ot0cli-udp-send-message/no-lock udp addr port u8)))))
+          (debug 'wire-sent (%ot0cli-ot-wire-packet-send via addr port u8))))
        (else (debug 'wire-send-via/blocked (socket-address->string remaddr)) 1))))
    (else (error "ot0cli-ot0-wire-packet-send/debug : illegal address" remaddr) 1)))
 
-(define (ot0cli-ot0-wire-packet-send/default udp socket remaddr data len ttl)
+(define (ot0cli-ot0-wire-packet-send/default via socket remaddr data len ttl)
   (cond
    ((internet-socket-address? remaddr)
     (let ((addr (socket-address4-ip4addr remaddr))
@@ -160,7 +181,7 @@
        ((ot0cli-wire-address-enabled? addr)
         (let ((u8 (make-u8vector len)))
           (u8vector-copy-from-ptr! u8 0 data 0 len)
-          (ot0/after-safe-return 0 (begin #;maybe-async (ot0cli-udp-send-message/no-lock udp addr port u8)))))
+          (%ot0cli-ot-wire-packet-send via addr port u8)))
        (else (debug 'wire-send-via/blocked (socket-address->string remaddr)) 1))))
    ((internet6-socket-address? remaddr)
     (let ((addr (socket-address6-ip6addr remaddr))
@@ -169,7 +190,7 @@
        ((ot0cli-wire-address-enabled? addr)
         (let ((u8 (make-u8vector len)))
           (u8vector-copy-from-ptr! u8 0 data 0 len)
-          (ot0/after-safe-return 0 (begin #;maybe-async (ot0cli-udp-send-message/no-lock udp addr port u8)))))
+          (%ot0cli-ot-wire-packet-send via addr port u8)))
        (else (debug 'wire-send-via/blocked (socket-address->string remaddr)) 1))))
    (else (error "ot0cli-ot0-wire-packet-send/default : illegal address" remaddr) 1)))
 

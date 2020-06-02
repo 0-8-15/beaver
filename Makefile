@@ -101,6 +101,10 @@ test: # Test It
 test: ot0
 	./ot0 -tests $(BINDINGS_DIR)/ot0-tests.scm : -exit
 
+vg: # run under valgrind
+vg:
+	valgrind --log-file=/tmp/ds-vg.log --track-origins=yes  --read-inline-info=yes --read-var-info=yes --leak-check=full --show-leak-kinds=all ./ot0 -B a -S ot0 start "\"$(IPADDR1):9994\"" $(OT0A) -repl
+
 testdata: # nome est omen
 testdata: z a b y
 
