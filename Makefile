@@ -113,26 +113,30 @@ a b:
 IPADDR1=192.168.43.96
 IPADDR2=127.0.0.1
 OT0PORT=9994
+OT0_ALL_EDGES=$(IPADDR1) $(OT0PORT) # $(IPADDR2) $(OT0PORT)
 
 y: a b z
-	./ot0 -data vertex make y type: origin nonce: 23 kp: z edge: `cat a/identifier` \
-		$(IPADDR1) $(OT0PORT)  $(IPADDR2) $(OT0PORT) :
+	./ot0 -data vertex make y type: origin nonce: 23 kp: z edge: `cat a/identifier` $(OT0_ALL_EDGES) :
 	./ot0 -B a -adm origin:= y
 	./ot0 -B b -adm origin:= y
 
-
-OT0DBG?=-d t wire -d t ot0
+#OT0DBG?=-d t wire -d t ot0
 # OT0ADDIP?=local-address: 255.255.255.255 local-address: 127.0.0.1
+OT0JOIN=join: 18382870269589979136
+#OT0VIA=via: 652295435805
+
+OT0A=$(OT0ADDIP) $(OT0VIA) # $(OT0JOIN)
 
 a-run:	# start 'a'
 a-run:
-	./ot0 -B a $(OT0DBG) -S control 9090 : -S ot0 start "\"$(IPADDR1):9994\"" $(OT0ADDIP) -repl
+	./ot0 -B a $(OT0DBG) -S control 9090 : -S ot0 start "\"$(IPADDR1):9994\"" $(OT0A) -repl
 
-# OT0B?=contact: `cat a/identifier` $(IPADDR1)/9994
+#OT0B?=contact: `cat a/identifier` $(IPADDR1)/9994
+OT0B += $(OT0ADDIP) $(OT0VIA) # $(OT0JOIN)
 
 b-run:	# start 'b'
 b-run:
-	./ot0 -B b $(OT0DBG) -S control 9091 : -S ot0 start "\"$(IPADDR1):9995\"" $(OT0ADDIP) $(OT0B) -repl
+	./ot0 -B b $(OT0DBG) -S control 9091 : -S ot0 start "\"$(IPADDR1):9995\"" $(OT0B) -repl
 
 
 weg: force
