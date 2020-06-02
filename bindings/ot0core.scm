@@ -70,6 +70,7 @@
          (##safe-lambda-unlock! ,c-code)
          ,tmp))))
 
+(define-macro (delay-until-after-return expr) `(lambda () ,expr))
 (define-macro (delayed-until-after-return? expr) `(procedure? ,expr))
 (define-macro (%ot0-post expr)
   (let ((result (gensym '%ot0-post)))
@@ -730,8 +731,10 @@ END
 END
 ))
   (assert-ot0-up! ot0-send!)
-  (begin-ot0-exclusive
-   (doit (ot0-prm-ot0 %%ot0-prm) to (ot0-make-message-tag type reference) data (u8vector-length data))))
+  (if (##in-safe-callback?)
+      (%ot0-post (delay-until-after-return (ot0-send! type to reference data)))
+      (begin-ot0-exclusive
+       (doit (ot0-prm-ot0 %%ot0-prm) to (ot0-make-message-tag type reference) data (u8vector-length data)))))
 
 (define (ot0-orbit moon #!optional (seed 0)) ;; EXPORT
   (define doit
