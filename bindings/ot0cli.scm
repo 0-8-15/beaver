@@ -42,7 +42,7 @@
      ((? string? str)
       (let ((val (eval (string->symbol str))))
         (cond
-         ((isa? val))
+         ((isa? val) val)
          (else (error "spec did not parse as well known procedure" str val isa?))))))))
 
 ;;;*** Test Framework
@@ -55,6 +55,22 @@
        (eqv? (u8vector-ref ip 0) 192)
        (eqv? (u8vector-ref ip 1) 168)
        (eqv? (u8vector-ref ip 2) 43)))
+
+(define (ot0cli-socks-filter addr port)
+  (define (looks-like-ot0-ad-hoc? addr)
+    (and (> (string-length addr) 2)
+         (member (substring addr 0 2) '("FC" "fc"))))
+  (define (looks-like-loopback? addr)
+    (and (> (string-length addr) 3)
+         (or (member (substring addr 0 2) '("127" "fc"))
+             (string=? addr "localhost"))))
+  (match
+   addr
+   ((? looks-like-ot0-ad-hoc?) 'lwip)
+   ((? looks-like-loopback?) #f)
+   (_ 'host)))
+
+(on-socks-connect (lambda (addr port) (ot0cli-socks-filter addr port)))
 
 ;;;*** We need some file locking
 
@@ -571,6 +587,14 @@
             (unless (procedure? service-procedure) (error "illegal service" SERVICE))
             (wire! reference post: (udp-wire-service reference service-procedure)) )))
         (continue! more)))
+     (("vpn" "tcp" "register" PORT-SPEC SERVICE OPTIONS...PERIOD ...)
+      "on vpn (currently ignored) register TCP \"SERVICE\" on PORT-SPEC"
+      (let ((port-settings (call-with-input-string PORT-SPEC read))
+            (service-procedure (%string->well-known-procedure SERVICE)))
+        (define (confirm options more)
+          (lwip-tcp-service-register! port-settings service-procedure)
+          (continue! more))
+        (cont-with-list-to-end-marker-and-rest OPTIONS...PERIOD confirm)))
      (("control" PORT OPTIONS..PERIOD ...)
       "start control server on loopback PORT
 \t\tBEWARE DANGER: currently *unlimited* and *unauthenticated* (i.e., just good for debugging)"
