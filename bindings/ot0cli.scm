@@ -35,10 +35,11 @@
 
 ;;;*** Well Known Procedures
 
-(define (%string->well-known-procedure x #!optional (isa? procedure?))
+(define (%string->well-known-procedure x kind #!optional (isa? procedure?))
   (let rec ((x x))
     (match
      x
+     ((or "socks-server" "socks") (lambda () (socks-server kind)))
      ((? string? str)
       (let ((val (eval (string->symbol str))))
         (cond
@@ -48,6 +49,9 @@
 ;;;*** Test Framework
 (include "test-environment.scm")
 
+(define current-log-port (make-parameter (current-output-port)))
+(define (ot0-log msg . more) (println port: (current-log-port) msg more))
+
 ;;;*** Sockets and Network
 
 (define (is-ip4-local? ip)
@@ -56,7 +60,10 @@
        (eqv? (u8vector-ref ip 1) 168)
        (eqv? (u8vector-ref ip 2) 43)))
 
-(define (ot0cli-socks-filter addr port)
+(define socks-forward-addr (make-parameter "127.0.0.1:9050"))
+
+(define (ot0cli-socks-connect name addr port)
+  (define (socks-forward? x) (socks-forward-addr))
   (define (looks-like-ot0-ad-hoc? addr)
     (and (> (string-length addr) 2)
          (member (substring addr 0 2) '("FC" "fc"))))
@@ -64,13 +71,41 @@
     (and (> (string-length addr) 3)
          (or (member (substring addr 0 2) '("127" "fc"))
              (string=? addr "localhost"))))
+  (ot0-log "SOCKS " name " " addr " " port)
   (match
    addr
    ((? looks-like-ot0-ad-hoc?) 'lwip)
    ((? looks-like-loopback?) #f)
-   (_ 'host)))
+   ((? socks-forward?) (open-socks-tcp-client (socks-forward-addr) addr port))
+   (_ (open-tcp-client `(address: ,addr port: ,port)))))
 
-(on-socks-connect (lambda (addr port) (ot0cli-socks-filter addr port)))
+(on-socks-connect (lambda (key addr port) (ot0cli-socks-connect key addr port)))
+
+(define crude-ip+port-split
+  (let ((splt (rx "]?:[[:numeric:]]+$"))
+        (brace (rx "^\\[")))
+    (lambda (spec)
+      (let ((left (rx-split splt spec)))
+        (if (pair? left)
+            (let* ((raw (car left))
+                   (has-brace (rx~ brace raw))
+                   (l1 (string-length raw))
+                  (left (if has-brace (substring raw 1 l1) raw)))
+              (values
+               (or (lwip-string->ip6-address left) (lwip-string->ip4-address left))
+               (string->number (substring spec (+ l1 (if has-brace 2 1)) (string-length spec)))))
+            (values #f #f))))))
+(define (ot0cli-connect name spec)
+  (ot0-log "FORWARD " name " " spec)
+  (receive
+   (addr port) (crude-ip+port-split spec)
+   (cond
+    ((and addr port (eq? (u8vector-ref addr 0) #xfc))
+     (open-lwip-tcp-client-connection addr port))
+    (else
+     (if (socks-forward-addr)
+         (open-socks-tcp-client (socks-forward-addr) addr port)
+         (open-tcp-client spec))))))
 
 ;;;*** We need some file locking
 
@@ -518,6 +553,11 @@
      (() "" (continue! '()))))
   (*ot0client-commands! args))
 
+(define (ot0cli-make-connect-service key dest)
+  (lambda ()
+    (let ((conn (ot0cli-connect key dest)))
+      (ports-connect! conn conn (current-input-port) (current-output-port)))))
+
 (define (ot0cli-services! args key-help? continue! fail)
   (define *ot0commands!
     (match-lambda/doc+
@@ -572,8 +612,14 @@
      (("tcp" "register" PORT-SPEC SERVICE more ...)
       "register TCP \"SERVICE\" {socks-server, ...} on PORT-SPEC"
       (let ((port-settings (call-with-input-string PORT-SPEC read))
-            (service-procedure (%string->well-known-procedure SERVICE)))
+            (service-procedure (%string->well-known-procedure SERVICE 'tcp)))
         (tcp-service-register! port-settings service-procedure)
+        (continue! more)))
+     (("tcp" "forward" PORT-SPEC DEST more ...)
+      "register TCP PORT-SPEC as forward to DEST
+\t\tHint: To provide IP address with port be sure to SPEC is enclosed in double quotes."
+      (let ((port-settings (call-with-input-string PORT-SPEC read)))
+        (tcp-service-register! port-settings (ot0cli-make-connect-service 'tcp-forward DEST))
         (continue! more)))
      (("udp" "register" PORT-SPEC SERVICE more ...)
       "register UDP \"service\" {ot0} on {port-spec}"
@@ -582,19 +628,25 @@
          SERVICE
          ((or "ot0" "ot0service") (ot0-server-start! port-settings))
          (else
-          (let ((service-procedure (%string->well-known-procedure SERVICE))
+          (let ((service-procedure (%string->well-known-procedure SERVICE 'udp))
                 (reference (make-pin)))
             (unless (procedure? service-procedure) (error "illegal service" SERVICE))
             (wire! reference post: (udp-wire-service reference service-procedure)) )))
         (continue! more)))
      (("vpn" "tcp" "register" PORT-SPEC SERVICE OPTIONS...PERIOD ...)
-      "on vpn (currently ignored) register TCP \"SERVICE\" on PORT-SPEC"
+      "register TCP \"SERVICE\" on PORT-SPEC"
       (let ((port-settings (call-with-input-string PORT-SPEC read))
-            (service-procedure (%string->well-known-procedure SERVICE)))
+            (service-procedure (%string->well-known-procedure SERVICE 'vpn)))
         (define (confirm options more)
           (lwip-tcp-service-register! port-settings service-procedure)
           (continue! more))
         (cont-with-list-to-end-marker-and-rest OPTIONS...PERIOD confirm)))
+     (("vpn" "tcp" "forward" PORT-SPEC DEST more ...)
+      "on vpn register PORT-SPEC as forwarded to DEST
+\t\tHint: To provide IP address with port be sure to SPEC is enclosed in double quotes."
+      (let ((port-settings (call-with-input-string PORT-SPEC read)))
+        (lwip-tcp-service-register! port-settings (ot0cli-make-connect-service 'vpn DEST))
+        (continue! more)))
      (("control" PORT OPTIONS..PERIOD ...)
       "start control server on loopback PORT
 \t\tBEWARE DANGER: currently *unlimited* and *unauthenticated* (i.e., just good for debugging)"
@@ -834,6 +886,12 @@
                       (call-with-input-string MAC read)))
              (result (ot0-network-mac->node nwid mac)))
         (println "decimal: " result " hex: '#x" (hexstr result 10) "'")
+        (ot0network! more)))
+     (("6plane" NETWORK UNIT PORT more ...) "calculate '6plane' address"
+      (let* ((args (map (lambda (x) (call-with-input-string x read))
+                        (list NETWORK UNIT PORT)))
+             (result (apply make-6plane-addr args)))
+        (println (socket-address->string result))
         (ot0network! more)))))
   (define ot0data!
     (match-lambda/doc+
