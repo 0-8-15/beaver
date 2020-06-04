@@ -63,7 +63,7 @@ OT0_CLI_INCLUDES=$(BINDINGS_DIR)/test-environment.scm $(BINDINGS_DIR)/ot0use.scm
 
 GSC_SYNTAX_FLAGS=-e '(load "~~/lib/match.o1")'
 
-ot0cli.c: $(BINDINGS_DIR)/ot0cli.scm $(OT0_CLI_INCLUDES) Makefile
+ot0cli.c: $(BINDINGS_DIR)/ot0cli.scm $(OT0_CLI_INCLUDES) # Makefile
 	$(GSC) $(GSCFLAGS) -o $@ -c $(GSC_SYNTAX_FLAGS) $(BINDINGS_DIR)/ot0cli.scm
 
 # TODO: compute these!
@@ -124,7 +124,7 @@ y: a b z
 	./ot0 -B a -adm origin:= y
 	./ot0 -B b -adm origin:= y
 
-#OT0DBG?=-k s -d t wire -d t ot0
+#OT0DBG?=-d:a9 -k s -d t wire -d t ot0 -l xx.scm
 NETWORK_NR=18382870269589979136
 OT0JOIN=join: $(NETWORK_NR)
 #OT0VIA=via: 652295435805
@@ -139,7 +139,7 @@ OT0A +=	-service tcp forward 13443 "[fcec:1d13:1d6a:6ec2:12c9::1]:7443"
 
 a-run:	# start 'a'
 a-run:
-	./ot0 -B a $(OT0DBG) ip: on -S control 9090 : -S ot0 start "\"$(IPADDR1):9994\"" $(OT0A) -repl
+	./ot0 $(OT0DBG) -B a ip: on -S control 9090 : -S ot0 start "\"$(IPADDR1):9994\"" $(OT0A) -repl
 
 #OT0B?=contact: `cat a/identifier` $(IPADDR1)/9994
 OT0B += $(OT0ADDIP) $(OT0VIA) $(OT0JOIN)
@@ -152,7 +152,7 @@ addr-b:
 
 b-run:	# start 'b'
 b-run:
-	./ot0 -B b $(OT0DBG) ip: on -S control 9091 : -S ot0 start "\"$(IPADDR1):9995\"" $(OT0B) -repl
+	./ot0 $(OT0DBG) -B b ip: on -S control 9091 : -S ot0 start "\"$(IPADDR1):9995\"" $(OT0B) -repl
 
 
 weg: force

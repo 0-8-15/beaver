@@ -557,8 +557,11 @@
 
 (define (ot0cli-make-connect-service key dest)
   (lambda ()
-    (let ((conn (ot0cli-connect key dest)))
-      (ports-connect! conn conn (current-input-port) (current-output-port))
+    (let ((conn (ot0cli-connect key dest))
+          (in (current-input-port))
+          (out (current-output-port)))
+      (ports-connect! in out conn conn)
+      (close-input-port in) ;; Just to be sure.  Should NOT be required.
       (close-port conn))))
 
 (define (ot0cli-services! args key-help? continue! fail)
@@ -1002,6 +1005,8 @@
      (("-d" more ...) "set debug option and continue"
       (set-debug! more key-help? ot0command-line! error-with-unhandled-params))
      (() "continue with final activity (none by default)" (finally))
+     (((? (lambda (x) (rx~=? (rx "-:.+") x)) KEY) . more) ""
+      (println "debug options -:... must precede others: " KEY))
      (((or "-h" "-help" "--help") KEY ...) "help on KEY default \"top-level\""
       (match
        KEY
