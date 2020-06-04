@@ -60,7 +60,7 @@
        (eqv? (u8vector-ref ip 1) 168)
        (eqv? (u8vector-ref ip 2) 43)))
 
-(define socks-forward-addr (make-parameter "127.0.0.1:9050"))
+(define socks-forward-addr (make-parameter #f))
 
 (define (ot0cli-socks-connect name addr port)
   (define (socks-forward? x) (socks-forward-addr))
@@ -319,7 +319,7 @@
       (kick (ot0cli-server #t) (ot0cli-ot0-networks joined)))))
 
 (define-sense* lwIP
-  initial: #t
+  initial: #f
   pred: boolean?
   filter: (lambda (old new) (or old (match new ((or #f 'no "no" "n" "N" "NO") #f) (_ #t))))
   name: "lwIP enabled (can not (yet) be undone)")
@@ -672,8 +672,12 @@
       (let ((data (read-file-as-u8vector FILE)))
         (if data (kick (ot0cli-origin data)))
         (*commands! more)))
-     (("lwip:" (and "on" enable) more ...) "enable lwip (once)"
-      (begin (kick (lwIP #t)) (*commands! more)))))
+     (((or "ip:" "vpn:" "lwip:") (and "on" enable) more ...) "enable lwip (once)"
+      (begin (kick (lwIP #t)) (*commands! more)))
+     (("socks-forward:" "all" DEST more ...)
+      "set DEST as outbound SOCKS proxy (DEST \"off\" for direct connect)"
+      (begin (socks-forward-addr (if (equal? DEST "off") #f DEST))
+             (*commands! more)))))
   (*commands! args))
 
 (define (set-debug! args key-help? continue! fail)
@@ -716,6 +720,7 @@
   (define (print-status*)
     (println "PERIOD token (regex): " (end-marker-source))
     (println "context directory: " (ot0-context) " kind: " (ot0-context-kind))
+    (println "SOCKS forward: " (socks-forward-addr))
     (print-debug-status*)
     (if (ot0cli-server) (ot0cli-ot0-display-status!)))
   (print-status*))
@@ -922,7 +927,10 @@
             (exit 0))))
      (("-B" DIR more ...) "Continue using (r/w) context directory DIR.
 \t\tOptionally: DIR prefixed by (\"kind:\" NUMBER)"
-      (using-context! DIR ot0command-line! more))
+      (using-context!
+       DIR
+       (lambda (more) (ot0cli-admin! more key-help? ot0command-line! error-with-unhandled-params))
+       more))
      (("-C" PORT more ...)
       "Connect to loopback PORT and send more... commands to the server and display resulting output"
       (let* ((port (call-with-input-string PORT read))

@@ -114,8 +114,8 @@ z:
 a b:
 	./ot0 -A $@
 
-IPADDR1=192.168.43.96
-IPADDR2=127.0.0.1
+IPADDR1=192.168.41.96
+IPADDR2=192.168.41.95
 OT0PORT=9994
 OT0_ALL_EDGES=$(IPADDR1) $(OT0PORT) # $(IPADDR2) $(OT0PORT)
 
@@ -124,23 +124,35 @@ y: a b z
 	./ot0 -B a -adm origin:= y
 	./ot0 -B b -adm origin:= y
 
-#OT0DBG?=-d t wire -d t ot0
-# OT0ADDIP?=local-address: 255.255.255.255 local-address: 127.0.0.1
-OT0JOIN=join: 18382870269589979136
+#OT0DBG?=-k s -d t wire -d t ot0
+NETWORK_NR=18382870269589979136
+OT0JOIN=join: $(NETWORK_NR)
 #OT0VIA=via: 652295435805
 
-OT0A=$(OT0ADDIP) $(OT0VIA) # $(OT0JOIN)
+OT0A=$(OT0ADDIP) $(OT0VIA) $(OT0JOIN)
+
+# Forward to Bob (#x6a6ec212c9) on NW 18382870269589979136
+# OT0A += -service tcp forward 13443 BEWARE: REPLACE the IPv6 address with the output of:
+#         make addr-b
+#OT0A +=	-service tcp forward 13443 "[fcec:xx:xxxx:xxxx:xxxx::1]:7443"
+OT0A +=	-service tcp forward 13443 "[fcec:1d13:1d6a:6ec2:12c9::1]:7443"
 
 a-run:	# start 'a'
 a-run:
-	./ot0 -B a $(OT0DBG) -S control 9090 : -S ot0 start "\"$(IPADDR1):9994\"" $(OT0A) -repl
+	./ot0 -B a $(OT0DBG) ip: on -S control 9090 : -S ot0 start "\"$(IPADDR1):9994\"" $(OT0A) -repl
 
 #OT0B?=contact: `cat a/identifier` $(IPADDR1)/9994
-OT0B += $(OT0ADDIP) $(OT0VIA) # $(OT0JOIN)
+OT0B += $(OT0ADDIP) $(OT0VIA) $(OT0JOIN)
+
+OT0B += -service vpn tcp forward 7443 127.0.0.1:2020
+
+addr-b:
+	./ot0 -data net 6plane $(NETWORK_NR) \
+	\#x`./ot0 -data id print b/identifier | cut -d: -f 1` 7443 | cut -d / -f 1
 
 b-run:	# start 'b'
 b-run:
-	./ot0 -B b $(OT0DBG) -S control 9091 : -S ot0 start "\"$(IPADDR1):9995\"" $(OT0B) -repl
+	./ot0 -B b $(OT0DBG) ip: on -S control 9091 : -S ot0 start "\"$(IPADDR1):9995\"" $(OT0B) -repl
 
 
 weg: force

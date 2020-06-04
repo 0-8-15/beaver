@@ -354,12 +354,16 @@
     (on-ot0-event ot0cli-ot0-event/debug)
     (on-ot0-virtual-receive ot0cli-ot0-virtual-receive/debug)
     (lwip-ethernet-send ot0cli-lwip-ethernet-send/debug)
-    (lwip-ip6-send lwip-ip6-send/debug))
+    (lwip-ip6-send lwip-ip6-send/debug)
+    (on-ot0-virtual-config ot0cli-on-ot0-virtual-config/debug)
+    (on-ot0-path-check ot0cli-on-ot0-path-check/debug))
    (else
     (on-ot0-event ot0cli-ot0-event/default)
     (on-ot0-virtual-receive ot0cli-ot0-virtual-receive/default)
     (lwip-ethernet-send ot0cli-lwip-ethernet-send/default)
-    (lwip-ip6-send lwip-ip6-send/default))))
+    (lwip-ip6-send lwip-ip6-send/default)
+    (on-ot0-virtual-config ot0cli-on-ot0-virtual-config/default)
+    (on-ot0-path-check ot0cli-on-ot0-path-check/default))))
 
 ;; Config
 
@@ -372,32 +376,49 @@
         (ot0-set-config-item! (ctnw) 2 16)
         (loop))))))
 
-(on-ot0-virtual-config
- (lambda (node userptr nwid netptr op config)
-   #;(thread-yield!) ;; KILLER? - No
-   (debug 'CONFIG op)
-   (debug 'CFG (ot0-virtual-config-base->vector config))
-   ;; set multicast limit
-   ;;(thread-send config-helper #t)
-   ;;(if (eqv? nwid (ctnw)) (maybe-async-when-lwip-requires-pthread-locks (debug 'set-mc-limit (ot0-set-config-item! nwid 2 16))))
-   0))
+(define (ot0cli-on-ot0-virtual-config/debug node userptr nwid netptr op config)
+  #;(thread-yield!) ;; KILLER? - No
+  (debug 'CONFIG op)
+  (debug 'CFG (ot0-virtual-config-base->vector config))
+  ;; set multicast limit
+  ;;(thread-send config-helper #t)
+  ;;(if (eqv? nwid (ctnw)) (maybe-async-when-lwip-requires-pthread-locks (debug 'set-mc-limit (ot0-set-config-item! nwid 2 16))))
+  0)
+
+#;(define (ot0cli-on-ot0-virtual-config/default node userptr nwid netptr op config)
+  0)
+
+(define ot0cli-on-ot0-virtual-config/default #f)
+
+(on-ot0-virtual-config ot0cli-on-ot0-virtual-config/default)
 
 ;; Optional
 
-(on-ot0-path-check
- (lambda (node userptr thr nodeid socket sa)
-   (debug 'PATHCHECK (number->string nodeid 16))
-   ;; (debug 'PATHCHECK:gamit-locked? (lwip-gambit-locked?))
-   (unless (eqv? (lwip-gambit-locked?) 1) (error "locking issue, ot0-path-check"))
-   (if (socket-address? sa)
-       (receive
-        (addr port)
-        (case (socket-address-family sa)
-          ((2) (values (socket-address4-ip4addr sa) (socket-address4-port sa)))
-          ((10) (values (socket-address6-ip6addr sa) (socket-address6-port sa)))
-          (else (values #f #f)))
-        (debug 'PATHCHECK (cons addr port))
-        (ot0cli-wire-address-enabled? addr)))))
+(define (ot0cli-on-ot0-path-check/debug node userptr thr nodeid socket sa)
+  (debug 'PATHCHECK (number->string nodeid 16))
+  ;; (debug 'PATHCHECK:gamit-locked? (lwip-gambit-locked?))
+  (unless (eqv? (lwip-gambit-locked?) 1) (error "locking issue, ot0-path-check"))
+  (if (socket-address? sa)
+      (receive
+       (addr port)
+       (case (socket-address-family sa)
+         ((2) (values (socket-address4-ip4addr sa) (socket-address4-port sa)))
+         ((10) (values (socket-address6-ip6addr sa) (socket-address6-port sa)))
+         (else (values #f #f)))
+       (debug 'PATHCHECK (cons addr port))
+       (ot0cli-wire-address-enabled? addr))))
+
+(define (ot0cli-on-ot0-path-check/default node userptr thr nodeid socket sa)
+  (if (socket-address? sa)
+      (receive
+       (addr port)
+       (case (socket-address-family sa)
+         ((2) (values (socket-address4-ip4addr sa) (socket-address4-port sa)))
+         ((10) (values (socket-address6-ip6addr sa) (socket-address6-port sa)))
+         (else (values #f #f)))
+       (ot0cli-wire-address-enabled? addr))))
+
+(on-ot0-path-check ot0cli-on-ot0-path-check/default)
 
 
 ;; FIXME, CRAZY: Just intercepting here causes havoc under valgrind!
