@@ -228,7 +228,7 @@
     (values
      (lambda (mac) ;; ot0cli-find-nif/mac
        (let ((x (assoc mac by-mac)))
-         (match x ((k nif) nif) (_ #f))))
+         (match x ((_ nif . more) nif) (_ #f))))
      (lambda (nif) ;; ot0cli-find-nw/nif
        (match
         (assoc (lwip-netif-mac nif) by-mac)
@@ -276,7 +276,7 @@
         (let ((pbuf (assemble-ethernet-pbuf srcmac dstmac ethertype payload len)))
           (ot0/after-safe-return #!void (lwip-send-ethernet-input! nif pbuf)))
         (begin
-          (debug 'DROP:VRECV-DSTMAC dstmac)))))
+          (debug 'DROP:VRECV-DSTMAC (lwip-mac-integer->string (ot0-mac->network dstmac)))))))
 
 (define (ot0cli-ot0-virtual-receive/default node userptr thr nwid netptr srcmac dstmac ethertype vlanid payload len)
   ;; API issue: looks like zerotier may just have disassembled a memory
@@ -289,7 +289,7 @@
         (let ((pbuf (assemble-ethernet-pbuf srcmac dstmac ethertype payload len)))
           (ot0/after-safe-return #!void (lwip-send-ethernet-input! nif pbuf)))
         (begin
-          (debug 'DROP:VRECV-DSTMAC dstmac)))))
+          (debug 'DROP:VRECV-DSTMAC (lwip-mac-integer->string (ot0-mac->network dstmac)))))))
 
 (on-ot0-virtual-receive ot0cli-ot0-virtual-receive/default)
 
