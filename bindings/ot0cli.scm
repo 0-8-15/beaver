@@ -102,6 +102,8 @@
    (cond
     ((and addr port (eq? (u8vector-ref addr 0) #xfc))
      (open-lwip-tcp-client-connection addr port))
+    ((or (equal? addr lwip-ip4addr-loopback) (equal? addr lwip-ip6addr-loopback))
+     (open-tcp-client spec))
     (else
      (if (socks-forward-addr)
          (open-socks-tcp-client (socks-forward-addr) addr port)
@@ -556,7 +558,8 @@
 (define (ot0cli-make-connect-service key dest)
   (lambda ()
     (let ((conn (ot0cli-connect key dest)))
-      (ports-connect! conn conn (current-input-port) (current-output-port)))))
+      (ports-connect! conn conn (current-input-port) (current-output-port))
+      (close-port conn))))
 
 (define (ot0cli-services! args key-help? continue! fail)
   (define *ot0commands!
