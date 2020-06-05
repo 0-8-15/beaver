@@ -93,7 +93,7 @@ irregex.c: $(BINDINGS_DIR)/irregex.scm
 
 OT0_CLI_OBJECTS=$(MATCH_DIR)/match.o likely.gambit.o lwip.o irregex.o ot0cli.o ot0cli_.o
 
-ot0: $(OT0_CLI_OBJECTS) $(OT0_OBJECTS) #libzerotiercore.a
+ot0: $(OT0_CLI_OBJECTS) $(OT0_OBJECTS) libzerotiercore.a
 	$(CXX) -o ot0 -L. -L $(SYS_ROOT)/lib $(OT0_OBJECTS) $(OT0_CLI_OBJECTS) \
 	 -lzerotiercore -llwipcore -lgambit -ldl -lutil
 
@@ -139,7 +139,7 @@ OT0A +=	-service tcp forward 13443 "[fcec:1d13:1d6a:6ec2:12c9::1]:7443"
 
 a-run:	# start 'a'
 a-run:
-	./ot0 $(OT0DBG) -B a ip: on -S control 9090 : -S ot0 start "\"$(IPADDR1):9994\"" $(OT0A) -repl
+	./ot0 $(OT0DBG) -B a ip: on -S control 9091 : -S ot0 start "\"$(IPADDR1):9994\"" $(OT0A) -repl
 
 #OT0B?=contact: `cat a/identifier` $(IPADDR1)/9994
 OT0B += $(OT0ADDIP) $(OT0VIA) $(OT0JOIN)
@@ -152,7 +152,7 @@ addr-b:
 
 b-run:	# start 'b'
 b-run:
-	./ot0 $(OT0DBG) -B b ip: on -S control 9091 : -S ot0 start "\"$(IPADDR1):9995\"" $(OT0B) -repl
+	./ot0 $(OT0DBG) -B b ip: on -S control 9092 : -S ot0 start "\"$(IPADDR1):9995\"" $(OT0B) -repl
 
 
 weg: force
