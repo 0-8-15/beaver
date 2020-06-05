@@ -732,7 +732,9 @@ END
 ))
   (assert-ot0-up! ot0-send!)
   (if (##in-safe-callback?)
-      (%ot0-post (delay-until-after-return (ot0-send! type to reference data)))
+      (%ot0-post
+       (delay-until-after-return
+        (ot0-send! to (ot0-make-message-tag type reference) data (u8vector-length data))))
       (begin-ot0-exclusive
        (doit (ot0-prm-ot0 %%ot0-prm) to (ot0-make-message-tag type reference) data (u8vector-length data)))))
 

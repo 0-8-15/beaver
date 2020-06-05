@@ -174,7 +174,7 @@
 (define (ot0cli-udp-send-message ump-ref to port data #!optional (start 0) (end (u8vector-length data)))
   (define ump? mutex?)
   (define (udp-send-message* to port data start end out)
-    (udp-destination-set! out to port)
+    (udp-destination-set! to port out)
     (udp-write-subu8vector data start end out))
   (let ((ump (and (procedure? ump-ref) (ump-ref))))
     (and (ump? ump)
@@ -652,7 +652,7 @@
             (service-procedure (%string->well-known-procedure SERVICE 'vpn)))
         (define (confirm options more)
           (lwip-tcp-service-register! port-settings service-procedure)
-          (continue! more))
+          (continue! OPTIONS...PERIOD))
         (cont-with-list-to-end-marker-and-rest OPTIONS...PERIOD confirm)))
      (("vpn" "tcp" "forward" PORT-SPEC DEST more ...)
       "on vpn register PORT-SPEC as forwarded to DEST
