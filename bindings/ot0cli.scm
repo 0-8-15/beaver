@@ -514,7 +514,7 @@
       (eof-object? expr)
       (with-exception-catcher
        handle-replloop-exception
-       (lambda () (ot0cli-1 expr (lambda () #t))))))))
+       (lambda () (ot0cli-process-commands expr (lambda () #t))))))))
 (wire!
  ot0cli-control-server-port
  sequence:
@@ -694,24 +694,26 @@
   (define *set-debug!
     (match-lambda/doc+
      help fail "debug setting did not parse" "-d"
-     (((or "trace" "t") (and (or "trigger" "bgexn" "wire" "ot0") key) more ...) "trace on key
-\tbgexn:  report exception terminating background threads
+     (((or "trace" "t") (and (or "trigger" "bgexn" "wire" "ot0" "lll") key) more ...) "trace on key
+\twire: log host network
+\tot0: log virtual network
 \ttrigger: report execution phases
-\twire: log network
-\tot0: log vpn"
+\tbgexn:  report exception terminating background threads
+\tlll: low level locks"
       (begin
         (match
          key
          ("wire" (ot0cli-ot0-wire-trace-toggle!))
          ("ot0" (ot0cli-ot0-trace-toggle!))
          ("bgexn" ($async-exceptions 'trace))
+         ("lll" (##safe-lambda-trace (not (##safe-lambda-trace))))
          ("trigger" ($debug-trace-triggers #t)))
         (continue! more)))
      (("-:da9" more ...) "raise background exception in primordial thread"
       ;; This is just documented here, but actually handled by gambit
       (continue! more))
      (("tests") "run compiled in command line tests (deprecated, will be removed)"
-      (begin (for-each ot0cli-1 (ot0cli-tests)) (continue! more)))
+      (begin (for-each ot0cli-process-commands (ot0cli-tests)) (continue! more)))
      (("stm-retry-limit" number more ...) "set STM retry limit to number"
       (let ((n (string->number number)))
         (unless (and n (>= n 0)) (error "illegal value" number))
@@ -738,7 +740,7 @@
 
 ;;;** Command Line Parser
 
-(define (ot0cli-1 args #!optional (finally (lambda () #t)))
+(define (ot0cli-process-commands args #!optional (finally (lambda () #t)))
   (define %wait-for-services ##escape-from-ot0cli#wait-for-services)
   (define key-help? (lambda (s) (and (member s '("-h" "-help" "--help")) #t)))
   (define refuse-help-key-as-file-name
@@ -1039,7 +1041,7 @@
 (define (ot0srv! #!optional dir)
   (define cmd '("-S" "udp" "register" "9994" "ot0"))
   (if dir
-      (ot0cli-1 `("-B" ,dir ,@cmd))
-      (ot0cli-1 `("-B" ,dir ,@cmd))))
+      (ot0cli-process-commands `("-B" ,dir ,@cmd))
+      (ot0cli-process-commands `("-B" ,dir ,@cmd))))
 
-(ot0cli-1 (cdr (command-line)) (match (command-line) ((_) replloop) (_ (lambda () #t))))
+(ot0cli-process-commands (cdr (command-line)) (match (command-line) ((_) replloop) (_ (lambda () #t))))
