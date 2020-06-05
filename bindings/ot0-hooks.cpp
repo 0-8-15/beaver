@@ -158,3 +158,18 @@ size_t OT0_root_endpoints(void* o, size_t i) { return ((World*)o)->roots()[i].st
 const void* OT0_root_endpoint(void* o, size_t i, size_t j) {
   return &((World*)o)->roots()[i].stableEndpoints[j];
 }
+
+/* Parameter Controls */
+
+extern unsigned long int OT0_parameter_ping_check_interval; // in Node.cpp
+
+bool OT0_parameter_int_set(OT0_parameter_id key, int64_t val) {
+  switch(key) {
+  case PING_CHECK:
+    if(val<0 || val > ZT_PEER_PING_PERIOD*3) return 0;
+    OT0_parameter_ping_check_interval = val;
+    break;
+  default: return 0;
+  }
+  return 1;
+}

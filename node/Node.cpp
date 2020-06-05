@@ -33,6 +33,12 @@
 #include "../version.h"
 
 #include "Constants.hpp"
+
+extern "C" {
+  extern unsigned long int OT0_parameter_ping_check_interval;
+  unsigned long int OT0_parameter_ping_check_interval = ZT_PING_CHECK_INVERVAL;
+}
+
 #include "SharedPtr.hpp"
 #include "Node.hpp"
 #include "RuntimeEnvironment.hpp"
@@ -260,9 +266,10 @@ ZT_ResultCode Node::processBackgroundTasks(void *tptr,int64_t now,volatile int64
 	_now = now;
 	Mutex::Lock bl(_backgroundTasksLock);
 
-	unsigned long timeUntilNextPingCheck = ZT_PING_CHECK_INVERVAL;
+	unsigned long timeUntilNextPingCheck =
+          OT0_parameter_ping_check_interval ? OT0_parameter_ping_check_interval : ZT_PING_CHECK_INVERVAL;
 	const int64_t timeSinceLastPingCheck = now - _lastPingCheck;
-	if (timeSinceLastPingCheck >= ZT_PING_CHECK_INVERVAL) {
+	if (timeSinceLastPingCheck >= timeUntilNextPingCheck) {
 		try {
 			_lastPingCheck = now;
 
@@ -277,7 +284,7 @@ ZT_ResultCode Node::processBackgroundTasks(void *tptr,int64_t now,volatile int64
 					printf("%.2x\t%12lld %lld\n",i,(unsigned long long)_stats.inVerbCounts[i],(unsigned long long)_stats.inVerbBytes[i]);
 			}
 			printf("\n");
-			*/
+			//*/
 
 			// Check last receive time on designated upstreams to see if we seem to be online
 			int64_t lastReceivedFromUpstream = 0;

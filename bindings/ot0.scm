@@ -495,6 +495,13 @@ ___return(buf);")
       (ot0-display-root obj i)))
   (newline))
 
+(define (ot0-parameter-int-set! key value)
+  ((c-lambda (int int64) bool "OT0_parameter_int_set")
+   (case key
+     ((PING_CHECK) 1)
+     (else (error "invalid OT0 parameter name" key)))
+   value))
+
 (include "ot0core.scm")
 
 (define (ot0-vertex-contact-all-edges! vertex)

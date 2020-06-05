@@ -186,6 +186,8 @@
 
 ;;;* OT0
 
+(ot0-parameter-int-set! 'PING_CHECK 15000) ;; default is 5000 (5ms) -- too freequent
+
 (define-pin ot0-online
   initial: #f
   pred: boolean?
@@ -610,6 +612,11 @@
             (reference (call-with-input-string NUMBER read)))
         (ot0-send! type unit reference (object->u8vector MSG))
         (*ot0commands! more)))
+     (("set:" (and (or "ping-check") KEY) NUMBER more ...) "set parameter KEY to value NUMBER"
+      (let ((key (assoc KEY '(("ping-check" PING_CHECK))))
+            (value (string->number NUMBER)))
+        (unless key (error "unknown parameter" KEY))
+        (ot0-parameter-int-set! key value) (*ot0commands! more)))
      (("status" more ...) "print status information"
       (begin (ot0cli-ot0-display-status!) (*ot0commands! more)))))
   (define *services!

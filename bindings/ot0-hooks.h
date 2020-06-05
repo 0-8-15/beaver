@@ -82,6 +82,15 @@ OT0_Id OT0_root_id(void* o, size_t i);
 size_t OT0_root_endpoints(void* o, size_t i);
 const void* OT0_root_endpoint(void* o, size_t i, size_t j);
 
+/* parameter controls */
+
+typedef enum{
+  PING_CHECK=1,
+  PEER_PING=2,
+} OT0_parameter_id;
+
+bool OT0_parameter_int_set(OT0_parameter_id key, int64_t val);
+
 #ifdef __cplusplus
 }
 #endif
