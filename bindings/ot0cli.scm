@@ -77,7 +77,7 @@
    ((? looks-like-ot0-ad-hoc?) 'lwip)
    ((? looks-like-loopback?) #f)
    ((? socks-forward?) (open-socks-tcp-client (socks-forward-addr) addr port))
-   (_ (open-tcp-client `(address: ,addr port: ,port)))))
+   (_ (open-tcp-client `(address: ,addr port-number: ,port)))))
 
 (on-socks-connect (lambda (key addr port) (ot0cli-socks-connect key addr port)))
 
