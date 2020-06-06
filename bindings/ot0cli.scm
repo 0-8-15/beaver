@@ -907,11 +907,11 @@
              (result (ot0-network-mac->node nwid mac)))
         (println "decimal: " result " hex: '#x" (hexstr result 10) "'")
         (ot0network! more)))
-     (("6plane" NETWORK UNIT PORT more ...) "calculate '6plane' address"
+     (("6plane" NETWORK UNIT more ...) "calculate '6plane' address"
       (let* ((args (map (lambda (x) (call-with-input-string x read))
-                        (list NETWORK UNIT PORT)))
+                        (list NETWORK UNIT)))
              (result (apply make-6plane-addr args)))
-        (println (socket-address->string result))
+        (println (ip6addr->string result))
         (ot0network! more)))))
   (define ot0data!
     (match-lambda/doc+

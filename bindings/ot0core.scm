@@ -1081,27 +1081,31 @@ c-declare-end
 
 (c-declare #<<c-declare-end
 
-void set_6plane_addr(struct sockaddr_in6 *sin6, uint64_t nwid, uint64_t zeroTierAddress, uint16_t port)
+static inline void set_6plane_addr_sin6(uint8_t* dst, uint64_t nwid, uint64_t ndid)
 {
   nwid ^= (nwid >> 32);
+  dst[0] = 0xfc;
+  dst[1] = (uint8_t)(0xff&(nwid >> 24));
+  dst[2] = (uint8_t)(0xff&(nwid >> 16));
+  dst[3] = (uint8_t)(0xff&(nwid >> 8));
+  dst[4] = (uint8_t)(0xff&nwid);
+  dst[5] = (uint8_t)(0xff&(ndid >> 32));
+  dst[6] = (uint8_t)(0xff&(ndid >> 24));
+  dst[7] = (uint8_t)(0xff&(ndid >> 16));
+  dst[8] = (uint8_t)(0xff&(ndid >> 8));
+  dst[9] = (uint8_t)(0xff&ndid);
+  dst[10] = 0;
+  dst[11] = 0;
+  dst[12] = 0;
+  dst[13] = 0;
+  dst[14] = 0;
+  dst[15] = 0x01;
+}
+
+void set_6plane_addr(struct sockaddr_in6 *sin6, uint64_t nwid, uint64_t zeroTierAddress, uint16_t port)
+{
   struct in6_addr *buf=&sin6->sin6_addr;
-  //memset(buf, 0, sizeof(struct in6_addr));
-  buf->s6_addr[0] = 0xfc;
-  buf->s6_addr[1] = (uint8_t)(0xff&(nwid >> 24));
-  buf->s6_addr[2] = (uint8_t)(0xff&(nwid >> 16));
-  buf->s6_addr[3] = (uint8_t)(0xff&(nwid >> 8));
-  buf->s6_addr[4] = (uint8_t)(0xff&nwid);
-  buf->s6_addr[5] = (uint8_t)(0xff&(zeroTierAddress >> 32));
-  buf->s6_addr[6] = (uint8_t)(0xff&(zeroTierAddress >> 24));
-  buf->s6_addr[7] = (uint8_t)(0xff&(zeroTierAddress >> 16));
-  buf->s6_addr[8] = (uint8_t)(0xff&(zeroTierAddress >> 8));
-  buf->s6_addr[9] = (uint8_t)(0xff&zeroTierAddress);
-  buf->s6_addr[10] = 0;
-  buf->s6_addr[11] = 0;
-  buf->s6_addr[12] = 0;
-  buf->s6_addr[13] = 0;
-  buf->s6_addr[14] = 0;
-  buf->s6_addr[15] = 0x01;
+  set_6plane_addr_sin6(buf->s6_addr, nwid, zeroTierAddress);
   //sin6->sin6_len = sizeof(struct zts_sockaddr_in6);
   sin6->sin6_family = AF_INET6;
   sin6->sin6_port = htons(port);
@@ -1121,7 +1125,7 @@ c-declare-end
 ;; (define p6 (make-6plane-addr #xff1d131d13000000 #x57707f31b6 7443))
 ;; (socket-address->internet6-address p6)
 
-(define make-6plane-addr
+(define make-6plane-addr+port ;; obsolet
   (let ((set-6plane-addr!
          (c-lambda
           (ot0-socket-address unsigned-int64 unsigned-int64 unsigned-int)
@@ -1133,6 +1137,17 @@ c-declare-end
                  port 0 0)
              (%ot0-string->socket-address (string-append "::/" (number->string port)))))
         (set-6plane-addr! sa nwid node port)
+        sa))))
+
+(define make-6plane-addr
+  (let ((set-6plane-addr!
+         (c-lambda
+          (scheme-object unsigned-int64 unsigned-int64)
+          void
+          "set_6plane_addr_sin6(___BODY(___arg1), ___arg2, ___arg3);")))
+    (lambda (nwid node)
+      (let ((sa (make-u8vector 16)))
+        (set-6plane-addr! sa nwid node)
         sa))))
 
 (define (ot0-adhoc-network-id start #!optional (end start))
