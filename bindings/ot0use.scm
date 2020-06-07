@@ -207,7 +207,7 @@
     (if (netif? nif)
         (begin
           (ot0cli-add-nif! nwid nif) ;; required before initialization
-          (lwip_init_interface_IPv6 nif (make-6plane-addr nwid ndid port))
+          (lwip_init_interface_IPv6 nif (make-6plane-addr nwid ndid))
           ;; this goes south under valgrind (only) and valgrind will report mem leaks
           #;(do ((n (- (debug 'NMacs (lwip-netif-ip6addr-count nif)) 1) (- n 1)))
           ((= n -1))
