@@ -704,7 +704,7 @@
         (match
          key
          ("wire" (ot0cli-ot0-wire-trace-toggle!))
-         ("ot0" (ot0cli-ot0-trace-toggle!))
+         ("ot0" (begin ($lwip-debug (not ($lwip-debug))) (ot0cli-ot0-trace-toggle!)))
          ("bgexn" ($async-exceptions 'trace))
          ("lll" (##safe-lambda-trace (not (##safe-lambda-trace))))
          ("trigger" ($debug-trace-triggers #t)))
