@@ -609,9 +609,9 @@
       (let ((ndid (call-with-input-string JUNCTION read)))
         (ot0-orbit ndid)
         (*ot0commands! more)))
-     (("contact:" UNIT ADDRESS more ...) "try to contact UNIT at ADDRESS"
+     (("contact:" UNIT-IDENTIFIER ADDRESS more ...) "try to contact UNIT-IDENTIFIER at ADDRESS"
       (let ((addr (string->socket-address ADDRESS)))
-        (ot0-contact-peer UNIT addr)
+        (ot0-contact-peer UNIT-IDENTIFIER addr)
         (*ot0commands! more)))
      (("leave:" NETWORK more ...) "leave to NETWORK"
       (let ((nwid (call-with-input-string NETWORK read)))
@@ -897,7 +897,7 @@
   (define identifier!
     (match-lambda/doc+
      help error-with-unhandled-params  (cmd-line-parse-error) '("data tool" "id")
-     (("print" FILE more ...)
+     (("print" FILE more ...) "check FILE to contain valid unit-identifier and print it"
       (let* ((file (and (file-exists? FILE)
                         (call-with-input-file FILE
                           ;; read all from FILE into string (gambit specific)
