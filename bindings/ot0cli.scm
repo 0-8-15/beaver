@@ -566,6 +566,26 @@
       (close-input-port in) ;; Just to be sure.  Should NOT be required.
       (close-port conn))))
 
+(define (ot0cli-make-process-service cmd args)
+  (lambda ()
+    (with-exception-catcher
+     handle-debug-exception
+     (lambda ()
+       (let ((srv (open-process `(path: ,cmd arguments: ,args stderr-redirection: #t))))
+         (ports-connect! (current-input-port) (current-output-port) srv srv)
+         (process-status srv))))
+    (close-output-port (current-output-port))
+    (close-input-port (current-input-port))))
+
+(define (ot0cli-register-command-service PORT-SPEC COMMAND OPTIONS..PERIOD service-register! continue)
+  (cont-with-list-to-end-marker-and-rest
+   OPTIONS..PERIOD
+   (lambda (options more)
+     (service-register!
+      (call-with-input-string PORT-SPEC read)
+      (ot0cli-make-process-service COMMAND options))
+     (continue more))))
+
 (define (ot0cli-services! args key-help? continue! fail)
   (define *ot0commands!
     (match-lambda/doc+
@@ -622,12 +642,19 @@
   (define *services!
     (match-lambda/doc+
      help fail "service setting did not parse" "-service"
-     (("tcp" "register" PORT-SPEC SERVICE more ...)
+     (("tcp" "register" PORT-SPEC "command:" COMMAND OPTIONS..PERIOD ...)
+      "register TCP service on PORT-SPEC start COMMAND with OPTIONS on connection (inetd-style)"
+      (ot0cli-register-command-service
+       PORT-SPEC COMMAND OPTIONS..PERIOD tcp-service-register! continue!))
+     (("tcp" "register" PORT-SPEC SERVICE OPTIONS..PERIOD ...)
       "register TCP \"SERVICE\" {socks-server, ...} on PORT-SPEC"
-      (let ((port-settings (call-with-input-string PORT-SPEC read))
-            (service-procedure (%string->well-known-procedure SERVICE 'tcp)))
-        (tcp-service-register! port-settings service-procedure)
-        (continue! more)))
+      (cont-with-list-to-end-marker-and-rest
+       OPTIONS..PERIOD
+       (lambda (options more)
+         (tcp-service-register!
+          (call-with-input-string PORT-SPEC read)
+          (%string->well-known-procedure SERVICE 'tcp))
+        (continue! more))))
      (("tcp" "forward" PORT-SPEC DEST more ...)
       "register TCP PORT-SPEC as forward to DEST
 \t\tHint: To provide IP address with port be sure to SPEC is enclosed in double quotes."
@@ -646,14 +673,18 @@
             (unless (procedure? service-procedure) (error "illegal service" SERVICE))
             (wire! reference post: (udp-wire-service reference service-procedure)) )))
         (continue! more)))
-     (("vpn" "tcp" "register" PORT-SPEC SERVICE OPTIONS...PERIOD ...)
+     (("vpn" "tcp" "register" PORT-SPEC "command:" COMMAND OPTIONS..PERIOD ...)
+      "register TCP service on PORT-SPEC start COMMAND with OPTIONS on connection (inetd-style)"
+      (ot0cli-register-command-service
+       PORT-SPEC COMMAND OPTIONS..PERIOD lwip-tcp-service-register! continue!))
+     (("vpn" "tcp" "register" PORT-SPEC SERVICE OPTIONS..PERIOD ...)
       "register TCP \"SERVICE\" on PORT-SPEC"
       (let ((port-settings (call-with-input-string PORT-SPEC read))
             (service-procedure (%string->well-known-procedure SERVICE 'vpn)))
         (define (confirm options more)
           (lwip-tcp-service-register! port-settings service-procedure)
-          (continue! OPTIONS...PERIOD))
-        (cont-with-list-to-end-marker-and-rest OPTIONS...PERIOD confirm)))
+          (continue! more))
+        (cont-with-list-to-end-marker-and-rest OPTIONS..PERIOD confirm)))
      (("vpn" "tcp" "forward" PORT-SPEC DEST more ...)
       "on vpn register PORT-SPEC as forwarded to DEST
 \t\tHint: To provide IP address with port be sure to SPEC is enclosed in double quotes."
