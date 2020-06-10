@@ -1165,7 +1165,7 @@ c-declare-end
     (if (or (eqv? (string-ref p (- sl 1)) #\/) (eqv? sl 0))
         (if (and (file-exists? p) (eq? (file-info-type (file-info p)) 'directory))
             (set! base p)
-            (set base #f))
+            (set! base #f))
         (loop (string-append base "/") (+ sl 1))))
   state-file)
 
