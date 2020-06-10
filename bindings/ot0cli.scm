@@ -100,17 +100,21 @@
        (eqv? (u8vector-ref ip 1) 168)
        (eqv? (u8vector-ref ip 2) 43)))
 
+(define looks-like-ot0-ad-hoc?
+  (let ((regex (rx "^\\[?([Ff][Cc]).*")))
+    (lambda (str) (rx~=? regex str))))
+
+(define looks-like-loopback?
+  (let ((rx1 (rx "^localhost"))
+        (rx2 (rx "^127\\.0\\.0\\..*"))
+        (rx3 (rx "^[Ff][Cc].*")))
+    (lambda (str)
+      (or (rx~=? rx1 str) (rx~=? rx2 str) (rx~=? rx3 str)))))
+
 (define socks-forward-addr (make-parameter #f))
 
 (define (ot0cli-socks-connect name addr port)
   (define (socks-forward? x) (socks-forward-addr))
-  (define (looks-like-ot0-ad-hoc? addr)
-    (and (> (string-length addr) 2)
-         (member (substring addr 0 2) '("FC" "fc"))))
-  (define (looks-like-loopback? addr)
-    (and (> (string-length addr) 3)
-         (or (member (substring addr 0 2) '("127" "fc"))
-             (string=? addr "localhost"))))
   (ot0-log "SOCKS " name " " addr " " port)
   (match
    addr
