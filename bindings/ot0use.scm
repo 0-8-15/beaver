@@ -1,3 +1,40 @@
+;;;* Callbacks, Glue, Routing and Persistance between lwIP and VPN
+
+;;;** To be imported from elswehere.
+
+(include "/home/u/build/ln/cmd/apps/cmd/observable-notational-conventions.scm")
+
+;;;*** Where to track the online-status.
+
+;; Note: This is the ONLY dependency on "likely" in the module.  Hope
+;; we can leave it like that.
+
+(define-pin ot0-online
+  initial: #f
+  pred: boolean?
+  filter: (lambda (o n) (if (boolean? n) n (eq? 'ONLINE n)))
+  name: "OT0 is online (set from on-ot0-event)")
+
+;;;*** We need some file locking
+
+(c-declare "
+#include <sys/file.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+")
+(define open2/ro (c-lambda (char-string) int "___return(open(___arg1, 0, O_RDONLY));"))
+(define open2 (c-lambda (char-string) int "___return(open(___arg1, 0));"))
+(define flock-try-lock! (c-lambda (int) bool "___return(flock(___arg1, LOCK_EX|LOCK_NB) == 0);"))
+;;(define flock-lock! (c-lambda (int) bool "___return(flock());"))
+;; (define flock-unlock! (c-lambda (int) bool "___return(flock());"))
+
+;;;*** Here to avoid the to cluter the top level with macros not avail.
+
+(include "test-environment.scm")
+
+;;;** Local Syntax
+
 (define-macro (delay-until-after-return expr) `(lambda () ,expr))
 
 (define-macro (after-safe-return expr)

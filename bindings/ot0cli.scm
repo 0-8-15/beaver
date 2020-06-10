@@ -21,7 +21,44 @@
   ;; cases might be added withouth harm.
   (println "NYI (Not Yet Implemented) " args))
 
-(include "/home/u/build/ln/cmd/apps/cmd/observable-notational-conventions.scm")
+;#|;;*** Moved out, still required:
+;; (include "/home/u/build/ln/cmd/apps/cmd/observable-notational-conventions.scm")
+
+(define-macro (define-values names . body)
+  (let ((vals (gensym 'vals)))
+    `(begin
+       ,@(map (lambda (name) `(define ,name #f)) names)
+       (call-with-values (lambda () . ,body)
+         (lambda ,vals
+           . ,(map (lambda (name)
+                     `(set! ,name (let ((,name (car ,vals))) (set! ,vals (cdr ,vals)) ,name)))
+                   names))))))
+
+(define-macro (kick expr . more)
+  `(kick! (lambda () ,expr . ,more)))
+
+(define-macro (kick/sync expr . more)
+  `(kick/sync! (lambda () ,expr . ,more)))
+
+(define-macro (define-pin name . more) `(define ,name (make-pin . ,more)))
+
+(define-macro (define-sense name . more)
+  (let ((in (string->symbol (string-append "." (symbol->string name))))
+        (in2 (string->symbol (string-append (symbol->string name) ":="))))
+    `(begin
+       (define ,in ,(if (null? more) `(make-sensor #f) `(make-sensor . ,more)))
+       (define ,in2 ,in)
+       (define ,name (,in)))))
+
+(define-macro (define-sense* name val . more)
+  (let ((in (string->symbol (string-append "." (symbol->string name))))
+        (in2 (string->symbol (string-append (symbol->string name) ":="))))
+    `(begin
+       (define ,in (SENSOR ,val . ,more))
+       (define ,in2 ,in)
+       (define ,name (,in)))))
+
+;|#
 
 (define (%add-to-lset obj lst #!optional (cmp eq?))
   (if (member obj lst cmp) lst (cons obj lst)))
@@ -47,7 +84,10 @@
          (else (error "spec did not parse as well known procedure" str val isa?))))))))
 
 ;;;*** Test Framework
-(include "test-environment.scm")
+
+;; Moved to make loading this file easier.
+;;
+;; (include "test-environment.scm")
 
 (define current-log-port (make-parameter (current-output-port)))
 (define (ot0-log msg . more) (println port: (current-log-port) msg more))
@@ -111,17 +151,7 @@
 
 ;;;*** We need some file locking
 
-(c-declare "
-#include <sys/file.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-")
-(define open2/ro (c-lambda (char-string) int "___return(open(___arg1, 0, O_RDONLY));"))
-(define open2 (c-lambda (char-string) int "___return(open(___arg1, 0));"))
-(define flock-try-lock! (c-lambda (int) bool "___return(flock(___arg1, LOCK_EX|LOCK_NB) == 0);"))
-;;(define flock-lock! (c-lambda (int) bool "___return(flock());"))
-;; (define flock-unlock! (c-lambda (int) bool "___return(flock());"))
+;;; Moved to ot0use.scm
 
 ;;;* Thread safe udp
 
@@ -186,17 +216,11 @@
 
 ;;;* OT0
 
-(ot0-parameter-int-set! 'PING_CHECK 15000) ;; default is 5000 (5ms) -- too freequent
-
-(define-pin ot0-online
-  initial: #f
-  pred: boolean?
-  filter: (lambda (o n) (if (boolean? n) n (eq? 'ONLINE n)))
-  name: "OT0 is online (set from on-ot0-event)")
+(ot0-parameter-int-set! 'PING_CHECK 15000) ;; default is 5000 (5ms) -- too frequent
 
 (define ot0-up (PIN)) ;; not yet used
 
-(include "ot0use.scm")
+;; Now it's one module to split C from plain Scheme (include "ot0use.scm")
 
 ;; (ot0cli-wire-address-add-filter! is-ip4-local?)
 
@@ -267,7 +291,7 @@
                     (open2 ((ot0-state-file) 1 0))))))
       (unless
        (flock-try-lock! fd)
-       (display "ot0-context: failed to lock" (current-error-port))
+       (display "ot0-context: failed to lock\n" (current-error-port))
        (exit 1))
       #;Kicking: (lambda () (ot0cli-locked fd))))
   (if exclusive (wire! ot0-state-file critical: lockit!))

@@ -52,7 +52,7 @@ INCLUDES+=-I. -I $(BINDINGS_DIR) -I $(GSCINCL)
 
 BINDINGS_DIR=bindings
 
-OT0_INCLUDES=$(BINDINGS_DIR)/ot0core.scm $(BINDINGS_DIR)/ot0core-extensions.scm
+OT0_INCLUDES=$(BINDINGS_DIR)/ot0core.scm $(BINDINGS_DIR)/ot0core-extensions.scm $(HOME)/build/ln/modules/socks/socks.scm
 ot0.c: $(BINDINGS_DIR)/ot0.scm $(OT0_INCLUDES) $(BINDINGS_DIR)/ot0-hooks.h
 	$(GSC) $(GSCFLAGS) -o $@ -c $(BINDINGS_DIR)/ot0.scm
 
@@ -63,7 +63,10 @@ OT0_CLI_INCLUDES=$(BINDINGS_DIR)/test-environment.scm $(BINDINGS_DIR)/ot0use.scm
 
 GSC_SYNTAX_FLAGS=-e '(load "~~/lib/match.o1")'
 
-ot0cli.c: $(BINDINGS_DIR)/ot0cli.scm $(OT0_CLI_INCLUDES) # Makefile
+ot0use.c: $(OT0_CLI_INCLUDES)
+	$(GSC) $(GSCFLAGS) -o $@ -c $(GSC_SYNTAX_FLAGS) $(BINDINGS_DIR)/ot0use.scm
+
+ot0cli.c: $(BINDINGS_DIR)/ot0cli.scm # Makefile
 	$(GSC) $(GSCFLAGS) -o $@ -c $(GSC_SYNTAX_FLAGS) $(BINDINGS_DIR)/ot0cli.scm
 
 # TODO: compute these!
@@ -71,7 +74,8 @@ OT0_GAMBITC_SOURCES=ot0.c irregex.c
 
 OT0_OBJECTS=ot0-hooks.o ot0.o
 
-OT0_CLI_GAMBITC_FILES=$(MATCH_DIR)/match.c $(LIKELY_DIR)/likely.gambit.c $(LWIP_DIR)/lwip.c ot0cli.c #  irregex.c
+OT0_CLI_GAMBITC_FILES=$(MATCH_DIR)/match.c $(LIKELY_DIR)/likely.gambit.c $(LWIP_DIR)/lwip.c \
+	ot0use.c ot0cli.c #  irregex.c
 
 ot0cli_.c: $(OT0_CLI_GAMBITC_FILES) $(OT0_GAMBITC_SOURCES)
 	$(GSC) $(GSCFLAGS) -o ot0cli_.c -link $(OT0_GAMBITC_SOURCES) $(OT0_CLI_GAMBITC_FILES)
@@ -91,7 +95,7 @@ lwip.o: $(LWIP_DIR)/lwip.c
 irregex.c: $(BINDINGS_DIR)/irregex.scm
 	$(GSC) $(GSCFLAGS) -o $@ -c $(GSC_SYNTAX_FLAGS) $(BINDINGS_DIR)/irregex.scm
 
-OT0_CLI_OBJECTS=$(MATCH_DIR)/match.o likely.gambit.o lwip.o irregex.o ot0cli.o ot0cli_.o
+OT0_CLI_OBJECTS=$(MATCH_DIR)/match.o likely.gambit.o lwip.o irregex.o ot0use.o ot0cli.o ot0cli_.o
 
 ot0: $(OT0_CLI_OBJECTS) $(OT0_OBJECTS) libzerotiercore.a
 	$(CXX) -o ot0 -L. -L $(SYS_ROOT)/lib $(OT0_OBJECTS) $(OT0_CLI_OBJECTS) \
@@ -125,7 +129,7 @@ y: a b z
 	./ot0 -B b -adm origin:= y
 
 #OT0DBG?=-d:a9 -k s -d t wire -d t ot0 -l xx.scm
-NETWORK_NR=18382870269589979136
+NETWORK_NR=18374687579166474240 # 18382870269589979136
 OT0JOIN=join: $(NETWORK_NR)
 #OT0VIA=via: 652295435805
 
