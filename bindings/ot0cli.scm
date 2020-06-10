@@ -513,13 +513,15 @@
 ;;;** Commands
 
 (define (ot0cli-ot0-display-status! . unused)
+  (define ndid (ot0-address))
   (println "Here:\n public:\n " (ot0-node-status) )
-  (println " #x" (hexstr (ot0-address) 10) " " (ot0-address) " in nw "
-           (map
-            (lambda (nwid)
-              (string-append "#x" (hexstr nwid 16) " " (number->string nwid) " "))
-            (ot0cli-ot0-networks))
-           ".")
+  (print " #x" (hexstr ndid 10) " " (ot0-address) " in nw")
+  (for-each
+   (lambda (nwid)
+     (print " #x" (hexstr nwid 16) " " (number->string nwid)
+             " " (ip6addr->string (make-6plane-addr nwid ndid))))
+   (ot0cli-ot0-networks))
+  (newline)
   (ot0cli-display-nifs)
   (println "Peer units:")
   (pp (ot0-peers-info) (current-output-port))
