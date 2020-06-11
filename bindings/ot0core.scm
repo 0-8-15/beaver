@@ -887,6 +887,40 @@ END
 
 (define (ot0-peers-info) (ot0-peers-map ot0-peer-info->vector))
 
+;#|
+(define-type ot0-peer-info
+  macros: prefix: ot0-
+  peer-address
+  peer-version
+  peer-latency
+  peer-role
+  peer-path-count
+  peer-had-aggregate-link
+  peer-paths
+  )
+
+(define (ot0-peer-info->XX-peer-info obj)
+  (apply
+   (lambda (peer-address
+            peer-version
+            peer-latency
+            peer-role
+            peer-path-count
+            peer-had-aggregate-link
+            peer-paths)
+     (ot0-make-ot0-peer-info
+      peer-address
+      peer-version
+      peer-latency
+      peer-role
+      peer-path-count
+      peer-had-aggregate-link
+      peer-paths))
+   (vector->list (ot0-peer-info->vector obj))))
+
+(set! ot0-peers-info (lambda () (ot0-peers-map ot0-peer-info->XX-peer-info)))
+;;|#
+
 ;;** Config Accessors
 (define ot0-virtual-config-nwid (c-lambda (ot0-virtual-config*) unsigned-int64 "___return(___arg1->nwid);"))
 (define ot0-virtual-config-mac (c-lambda (ot0-virtual-config*) unsigned-int64 "___return(___arg1->mac);"))
