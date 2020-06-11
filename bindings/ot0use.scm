@@ -4,6 +4,8 @@
 
 (include "/home/u/build/ln/cmd/apps/cmd/observable-notational-conventions.scm")
 
+(include "/home/u/build/ln/modules/socks/socks.scm")
+
 ;;;*** Where to track the online-status.
 
 ;; Note: This is the ONLY dependency on "likely" in the module.  Hope

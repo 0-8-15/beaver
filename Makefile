@@ -52,14 +52,14 @@ INCLUDES+=-I. -I $(BINDINGS_DIR) -I $(GSCINCL)
 
 BINDINGS_DIR=bindings
 
-OT0_INCLUDES=$(BINDINGS_DIR)/ot0core.scm $(BINDINGS_DIR)/ot0core-extensions.scm $(HOME)/build/ln/modules/socks/socks.scm
+OT0_INCLUDES=$(BINDINGS_DIR)/ot0core.scm $(BINDINGS_DIR)/ot0core-extensions.scm
 ot0.c: $(BINDINGS_DIR)/ot0.scm $(OT0_INCLUDES) $(BINDINGS_DIR)/ot0-hooks.h
 	$(GSC) $(GSCFLAGS) -o $@ -c $(BINDINGS_DIR)/ot0.scm
 
 ot0_.c: ot0.c
 	$(GSC) $(GSCFLAGS) -o ot0_.c -link ot0.c
 
-OT0_CLI_INCLUDES=$(BINDINGS_DIR)/test-environment.scm $(BINDINGS_DIR)/ot0use.scm
+OT0_CLI_INCLUDES=$(BINDINGS_DIR)/test-environment.scm $(BINDINGS_DIR)/ot0use.scm  $(HOME)/build/ln/modules/socks/socks.scm
 
 GSC_SYNTAX_FLAGS=-e '(load "~~/lib/match.o1")'
 

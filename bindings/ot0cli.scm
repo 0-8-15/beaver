@@ -66,8 +66,6 @@
 (define (remove1 obj lst #!optional (cmp eq?))
   (if (member obj lst cmp) (remove (lambda (x) (cmp x obj)) lst) lst))
 
-(include "/home/u/build/ln/modules/socks/socks.scm")
-
 ;;;** Utilitarian Garbage :Notational Conventions:
 
 ;;;*** Well Known Procedures
