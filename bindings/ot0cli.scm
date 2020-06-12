@@ -109,20 +109,6 @@
     (lambda (str)
       (or (rx~=? rx1 str) (rx~=? rx2 str) (rx~=? rx3 str)))))
 
-(define socks-forward-addr (make-parameter #f))
-
-(define (ot0cli-socks-connect name addr port)
-  (define (socks-forward? x) (socks-forward-addr))
-  (ot0-log "SOCKS " name " " addr " " port)
-  (match
-   addr
-   ((? looks-like-ot0-ad-hoc?) 'lwip)
-   ((? looks-like-loopback?) #f)
-   ((? socks-forward?) (open-socks-tcp-client (socks-forward-addr) addr port))
-   (_ (open-tcp-client `(address: ,addr port-number: ,port)))))
-
-(on-socks-connect (lambda (key addr port) (ot0cli-socks-connect key addr port)))
-
 (define crude-ip+port-split
   (let ((splt (rx "]?:[[:numeric:]]+$"))
         (brace (rx "^\\[")))
@@ -137,6 +123,36 @@
                (or (lwip-string->ip6-address left) (lwip-string->ip4-address left))
                (string->number (substring spec (+ l1 (if has-brace 2 1)) (string-length spec)))))
             (values #f #f))))))
+
+(define socks-forward-addr (make-parameter #f))
+
+(define (ot0cli-with-socks-forward)
+  ;; returns either a PORT-SPEC or a port for socks forward or false for direct connect
+  (let ((sfwd (socks-forward-addr)))
+    (if sfwd
+        (if (looks-like-ot0-ad-hoc? sfwd)
+            (receive
+             (addr port) (crude-ip+port-split sfwd)
+             (open-lwip-tcp-client-connection addr port))
+            sfwd)
+        #f)))
+
+(define (ot0cli-socks-connect name addr port)
+  (define ip (if (string? addr) (lwip-string->ip6-address addr) addr))
+  (ot0-log "SOCKS " name " " addr " " port)
+  (cond
+   ((and ip port (eq? (u8vector-ref ip 0) #xfc))
+    (open-lwip-tcp-client-connection ip port))
+   ((or (equal? ip lwip-ip4addr-loopback) (equal? ip lwip-ip6addr-loopback))
+    #f)
+   (else
+    (let ((skfw (ot0cli-with-socks-forward)))
+      (if skfw
+          (open-socks-tcp-client skfw addr port)
+          (open-tcp-client `(address: ,addr port-number: ,port)))))))
+
+(on-socks-connect (lambda (key addr port) (ot0cli-socks-connect key addr port)))
+
 (define (ot0cli-connect name spec)
   (ot0-log "FORWARD " name " " spec)
   (receive
@@ -147,9 +163,10 @@
     ((or (equal? addr lwip-ip4addr-loopback) (equal? addr lwip-ip6addr-loopback))
      (open-tcp-client spec))
     (else
-     (if (socks-forward-addr)
-         (open-socks-tcp-client (socks-forward-addr) addr port)
-         (open-tcp-client spec))))))
+     (let ((skfw (ot0cli-with-socks-forward)))
+       (if skfw
+           (open-socks-tcp-client skfw addr port)
+           (open-tcp-client spec)))))))
 
 ;;;*** We need some file locking
 
