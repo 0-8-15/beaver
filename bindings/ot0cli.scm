@@ -629,6 +629,7 @@
           (in (current-input-port))
           (out (current-output-port)))
       (ports-connect! in out conn conn)
+      ;; TBD: take these out, they should be garbage.
       (close-input-port in) ;; Just to be sure.  Should NOT be required.
       (close-port conn))))
 
@@ -640,6 +641,7 @@
        (let ((srv (open-process `(path: ,cmd arguments: ,args stderr-redirection: #t))))
          (ports-connect! (current-input-port) (current-output-port) srv srv)
          (process-status srv))))
+    ;; TBD: take these out, they should be garbage.
     (close-output-port (current-output-port))
     (close-input-port (current-input-port))))
 
@@ -1104,7 +1106,7 @@
      (("-a" PIN more ...) "display PIN value (\"human readable\" if possible)"
       (ot0cli-output! pp PIN ot0command-line! more))
      (("-b" PIN more ...) "write PIN value (\"machine readable\" if possible)"
-      (ot0cli-output! (lambda (x) (write x) (newline)) PIN ot0command-line! more))
+      (ot0cli-output! (lambda (x p) (write x p) (newline p)) PIN ot0command-line! more))
      (((and (or "-c" "-cs" "-change") CHANGE-MODE) KEY_VALUE..PERIOD ...)
       "change STM safe KEYs to VALUEs within a single transaction
 \t\t\"-cs\" \"-change\" :: force synchroneous \"kick\" (equivalent to \"-c\" when $kick-style is 'sync)"
