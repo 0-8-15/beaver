@@ -71,6 +71,7 @@
 ;;;*** Well Known Procedures
 
 (define (%string->well-known-procedure x kind #!optional (isa? procedure?))
+  ;; deprecated, almost obsolete
   (let rec ((x x))
     (match
      x
@@ -80,6 +81,26 @@
         (cond
          ((isa? val) val)
          (else (error "spec did not parse as well known procedure" str val isa?))))))))
+
+(define (%string->pin loc x)
+  (match
+   x
+   ((? string? str)
+    (let ((val (eval (string->symbol str))))
+      (cond
+       ((pin? val) val)
+       (else (error "spec did not parse as pin" loc str)))))
+   (_ (error "not a string" loc x))))
+
+(define (ot0cli-output! style key continue more)
+  (let ((var (%string->pin ot0cli-output! key)))
+    (style (var) (current-output-port)))
+  (continue more))
+
+(define (ot0cli-assign! key value)
+  ;; Allows only key evaluating to a procedure tagged as `pin?`.
+  (let ((var (%string->well-known-procedure key ot0cli-assign! pin?)))
+    (if var (var value))))
 
 ;;;*** Test Framework
 
@@ -1075,20 +1096,36 @@
      (("-exit") "" (exit 0))
      (("-exit" CODE more ...) "exit now with optional CODE (default 0) more... is not evaluated, no final activity"
       (exit (or (string->number CODE) 0)))
+     ;; Low Level
      (("-p" PERIOD more ...)
       "set list closing delimitter to PERIOD (a regex by default \",:.;\")
 \t\t- once only - before first match - mnemonic: 'period./pop/reduce'"
       (begin (set-end-marker! PERIOD) (ot0command-line! more)))
+     (("-a" PIN more ...) "display PIN value (\"human readable\" if possible)"
+      (ot0cli-output! pp PIN ot0command-line! more))
+     (("-b" PIN more ...) "write PIN value (\"machine readable\" if possible)"
+      (ot0cli-output! (lambda (x) (write x) (newline)) PIN ot0command-line! more))
+     (((and (or "-c" "-cs" "-change") CHANGE-MODE) KEY_VALUE..PERIOD ...)
+      "change STM safe KEYs to VALUEs within a single transaction
+\t\t\"-cs\" \"-change\" :: force synchroneous \"kick\" (equivalent to \"-c\" when $kick-style is 'sync)"
+      (cont-with-list-to-end-marker-and-rest
+       KEY_VALUE..PERIOD
+       (lambda (assignments more)
+         (unless (stm-atomic?) (error "change (-c) could nest,  but did you expect that?"))
+         ((match CHANGE-MODE ((or "-cs" "-change") kick/sync!) (_ kick!))
+          (lambda ()
+            (do ((rest assignments (cddr rest)))
+                ((null? rest))
+              (when (null? (cdr rest)) (error "change: odd number of arguments"))
+              (ot0cli-assign! (car rest) (cadr rest)))))
+         ;; continue with rest of command line after transaction.
+         (ot0command-line! more))))
+     (("-d" more ...) "set debug option and continue"
+      (set-debug! more key-help? ot0command-line! error-with-unhandled-params))
      (("-k" STYLE more ...) "set $kick-style to STYLE{async,sync,none} and continue
 \tHint: use sync as first measure during debugging"
       (let ((style (match STYLE ((or "s" "sync") 'sync) ((or "a" "async") 'async) ((or "n" "none") #f))))
         ($kick-style style) (ot0command-line! more)))
-     (("-kick" more ...) "continue within a transaction until \"-back\""
-      (let ((rest (begin (ot0command-line! more))))
-        (ot0command-line! (if (pair? rest) rest '()))))
-     (("-back" more ...) "end the transaction since last \"-kick\" and continue with more..." more)
-     (("-d" more ...) "set debug option and continue"
-      (set-debug! more key-help? ot0command-line! error-with-unhandled-params))
      (() "continue with final activity (none by default)" (finally))
      (((? (lambda (x) (rx~=? (rx "-:.+") x)) KEY) . more) ""
       (println "debug options -:... must precede others: " KEY))
