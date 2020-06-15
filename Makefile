@@ -1,7 +1,7 @@
 # Common makefile -- loads make rules for each platform
 
 ### FIXME: ZT_DEBUG=1 is currently required.  Otherwise the build hangs!.
-ZT_DEBUG=1
+ZT_DEBUG ?= 1
 
 OSTYPE?=$(shell uname -s)
 
@@ -86,11 +86,17 @@ ot0cli_.c: $(OT0_CLI_GAMBITC_FILES) $(OT0_GAMBITC_SOURCES)
 ot0-hooks.o: $(BINDINGS_DIR)/ot0-hooks.cpp $(BINDINGS_DIR)/ot0-hooks.h
 	$(CXX) -c $(CXXFLAGS) -o $@ $(BINDINGS_DIR)/ot0-hooks.cpp
 
+$(LIKELY_DIR)/likely.gambit.c:
+	make -C $(LIKELY_DIR) likely.gambit.c
+
 likely.gambit.o: $(LIKELY_DIR)/likely.gambit.c
-	$(CC) -c $(CCFLAGS) $(INCLUDES) -o $@ $<
+	# TBD: -Os here is for clang 3.8.1 (at least)! It will FAIL
+	# BADLY in an endless loop if compiled with anything faster than -O0.
+	# FIXME: gcc 6.3.0 this compiles flawlessly with -O3
+	$(CC) -c $(CFLAGS) -Os $(INCLUDES) -o $@ $<
 
 lwip.o: $(LWIP_DIR)/lwip.c
-	$(CC) -c $(CCFLAGS) $(INCLUDES) -o $@ $<
+	$(CC) -c $(CFLAGS) $(INCLUDES) -o $@ $<
 
 irregex.c: $(BINDINGS_DIR)/irregex.scm
 	$(GSC) $(GSCFLAGS) -o $@ -c $(GSC_SYNTAX_FLAGS) $(BINDINGS_DIR)/irregex.scm
