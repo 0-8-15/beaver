@@ -38,11 +38,16 @@ else
 	override DEFS+=-DMINIUPNP_STATICLIB -DMINIUPNPC_SET_SOCKET_TIMEOUT -DMINIUPNPC_GET_SRC_ADDR -D_BSD_SOURCE -D_DEFAULT_SOURCE -D_XOPEN_SOURCE=600 -DOS_STRING=\"Linux\" -DMINIUPNPC_VERSION_STRING=\"2.0\" -DUPNP_VERSION_STRING=\"UPnP/1.1\" -DENABLE_STRNATPMPERR
 	ONE_OBJS+=ext/miniupnpc/connecthostport.o ext/miniupnpc/igd_desc_parse.o ext/miniupnpc/minisoap.o ext/miniupnpc/minissdpc.o ext/miniupnpc/miniupnpc.o ext/miniupnpc/miniwget.o ext/miniupnpc/minixml.o ext/miniupnpc/portlistingparse.o ext/miniupnpc/receivedata.o ext/miniupnpc/upnpcommands.o ext/miniupnpc/upnpdev.o ext/miniupnpc/upnperrors.o ext/miniupnpc/upnpreplyparse.o
 endif
-ifeq ($(NOSYS)$(wildcard /usr/include/natpmp.h),)
+ifneq ($(wildcard /usr/include/natpmp.h),)
+	LDLIBS+=-lnatpmp
+	override DEFS+=-DZT_USE_SYSTEM_NATPMP
+else
+ifeq ($(wildcard /usr/include/natpmp.h),)
 	ONE_OBJS+=ext/libnatpmp/natpmp.o ext/libnatpmp/getgateway.o
 else
 	LDLIBS+=-lnatpmp
 	override DEFS+=-DZT_USE_SYSTEM_NATPMP
+endif
 endif
 
 # Use bundled http-parser since distribution versions are NOT API-stable or compatible!
