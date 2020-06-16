@@ -472,4 +472,8 @@
 (on-ot0-maintainance
  (lambda (prm thunk)
    #; (debug 'ot0-maintainance (lwip-gambit-locked?))
-   thunk))
+   (lambda ()
+     (thunk)
+     (thread-yield!) ;; be sure the other threads are more or less done
+     (##gc) ;; enforce garbage collection
+    )))
