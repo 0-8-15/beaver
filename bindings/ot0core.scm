@@ -156,8 +156,11 @@ END
 ;; files. ot0-socket-address are read only, managed by ZT.
 ;; (c-define-type ot0-socket-address (pointer (struct "sockaddr_storage") ot0-socket-address))
 (c-define-type ot0-socket-address (pointer (struct "sockaddr_storage") socket-address))
-;; From gamsock owned we get another tag - those managed by gambit GC.
-(c-define-type gamsock-socket-address (pointer (struct "sockaddr_storage") socket-address))
+;; From gamsock&successor owned we get another tag - those managed by gambit GC.
+(define-cond-expand-feature gamsock-socket-address-is-u8vector)
+(cond-expand
+ (gamsock-socket-address-is-u8vector (c-define-type gamsock-socket-address "___SCMOBJ"))
+ (else (c-define-type gamsock-socket-address (pointer (struct "sockaddr_storage") socket-address))))
 
 (define ot0->gamsock-socket-address
   (c-lambda (ot0-socket-address) gamsock-socket-address "___return(___arg1);"))
@@ -427,15 +430,27 @@ c-declare-end
 ;; Standard use is from the packet receiving thread.
 (define (ot0-wire-packet-process packet from)
   (define doit
-    (c-safe-lambda
-     ;; 1     lsock addr              data          7
-     (ot0-node int64 ot0-socket-address scheme-object size_t) bool #<<END
-     int rc = -1;
-     rc = ZT_Node_processWirePacket(___arg1, NULL, zt_now(), ___arg2, (void *) ___arg3,
-             ___CAST(void *,___BODY_AS(___arg4,___tSUBTYPED)), ___arg5, &nextBackgroundTaskDeadline);
-     ___return(rc == ZT_RESULT_OK);
+    (cond-expand
+     (gamsock-socket-address-is-u8vector
+      (c-safe-lambda
+       ;; 1      lsock addr          data          7
+       (ot0-node int64 scheme-object scheme-object size_t) bool #<<END
+       int rc = -1;
+       rc = ZT_Node_processWirePacket(___arg1, NULL, zt_now(), ___arg2, ___BODY(___arg3),
+              ___CAST(void *,___BODY_AS(___arg4,___tSUBTYPED)), ___arg5, &nextBackgroundTaskDeadline);
+       ___return(rc == ZT_RESULT_OK);
 END
 ))
+     (else
+      (c-safe-lambda
+       ;; 1      lsock addr               data          7
+       (ot0-node int64 ot0-socket-address scheme-object size_t) bool #<<END
+       int rc = -1;
+       rc = ZT_Node_processWirePacket(___arg1, NULL, zt_now(), ___arg2, (void *) ___arg3,
+              ___CAST(void *,___BODY_AS(___arg4,___tSUBTYPED)), ___arg5, &nextBackgroundTaskDeadline);
+       ___return(rc == ZT_RESULT_OK);
+END
+))))
   (when
    (ot0-up?)
    (or
@@ -678,7 +693,7 @@ END
     (thread-sleep! (max background-period (ot0-background-period/lower-limit)))
     (begin-ot0-exclusive
      (when (ot0-up?) (%%checked maintainance (((on-ot0-maintainance) %%ot0-prm maintainance)) #f)))
-     (maintainance-loop))
+    (maintainance-loop))
   ;; Should we lock?  No: Better document single-threadyness!
   (if (ot0-up?) (error "OT0 already running"))
   (let ((prm (make-ot0-prm #f udp (make-thread recv-loop 'ot0-receiver)))
@@ -1111,7 +1126,13 @@ c-declare-end
   (c-lambda (ot0-socket-address) unsigned-int64 "sockaddr_to_multicast_mac"))
 
 (define gamsock-socket-address->nd6-multicast-mac
-  (c-lambda (gamsock-socket-address) unsigned-int64 "sockaddr_to_multicast_mac"))
+  (cond-expand
+   (gamsock-socket-address-is-u8vector
+    (c-lambda
+     (scheme-object) unsigned-int64
+     "___return(sockaddr_to_multicast_mac(___BODY(___arg1)));"))
+   (else
+    (c-lambda (gamsock-socket-address) unsigned-int64 "sockaddr_to_multicast_mac"))))
 
 (c-declare #<<c-declare-end
 

@@ -138,7 +138,7 @@ END
         (make-will result free)
         result))))
 
-(define ot0-internetX-address->socket-address
+(define ot0-internetX-address->socket-address1
   (let ((free (c-lambda (OT0-nonnull-socket-address) void "OT0_free_sockaddr"))
         (build (c-lambda
                 (scheme-object size_t unsigned-int16) OT0-socket-address
@@ -146,6 +146,17 @@ END
     (lambda (host port)
       (let ((result (build host (u8vector-length host) port)))
         (make-will result free)
+        result))))
+
+(define ot0-internetX-address->socket-address
+  (let ()
+    (define build!
+      (c-lambda
+       (scheme-object scheme-object size_t unsigned-int16) OT0-socket-address
+       "OT0_init_sockaddr_from_bytes_and_port(___BODY(___arg1), ___BODY(___arg2),___arg3,___arg4);"))
+    (lambda (host port)
+      (let ((result (make-u8vector OT0_SOCKADDR_STORAGE_SIZE)))
+        (build! result host (u8vector-length host) port)
         result))))
 
 (define ot0-socket-address-family

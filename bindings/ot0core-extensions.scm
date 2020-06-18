@@ -17,7 +17,13 @@ c-declare-end
 (define (ot0-contact-peer id addr #!optional (lsock 0))
   (assert-ot0-up! ot0-contact-peer)
   (begin-ot0-exclusive
-   ((c-safe-lambda (ot0-node int char-string gamsock-socket-address) bool "zt_contact_peer")
+   ((cond-expand
+     (gamsock-socket-address-is-u8vector
+      (c-safe-lambda
+       (ot0-node int char-string scheme-object) bool
+       "___return(zt_contact_peer(___arg1,___arg2,___arg3,___BODY(___arg4)));"))
+     (else
+      (c-safe-lambda (ot0-node int char-string gamsock-socket-address) bool "zt_contact_peer")))
     (ot0-prm-ot0 %%ot0-prm) lsock id addr))
   addr)
 

@@ -66,6 +66,8 @@ void* OT0_sockaddr_from_string(const char* str) { return new InetAddress(str); }
 void OT0_free_sockaddr(void* addr) { delete ((InetAddress*) addr); }
 void* OT0_sockaddr_from_bytes_and_port(const void* data, size_t len, unsigned int port)
 { return new InetAddress(data, len, port); }
+void OT0_init_sockaddr_from_bytes_and_port(void *into, const void* data, size_t len, unsigned int port)
+{ *((InetAddress*) into) = InetAddress(data, len, port); }
 
 void OT0_g_free_ID(OT0_Id id) { delete (Identity*)id; }
 
