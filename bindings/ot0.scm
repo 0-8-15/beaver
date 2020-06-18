@@ -130,7 +130,7 @@ END
       "char buf[64]; OT0_sockaddr_into_string(___arg1, buf); ___return(buf);")
      addr))))
 
-(define ot0-string->socket-address ;; MUST be freed!
+(define ot0-string->socket-address1 ;; MUST be freed!
   ;; FIXME: use a better version without malloc instead!
   (let ((free (c-lambda (OT0-nonnull-socket-address) void "OT0_free_sockaddr")))
     (lambda (str)
@@ -138,7 +138,15 @@ END
         (make-will result free)
         result))))
 
-(define ot0-internetX-address->socket-address1
+(define (ot0-string->socket-address str)
+  (let ((result (result (make-u8vector OT0_SOCKADDR_STORAGE_SIZE))))
+    ((c-lambda
+      (scheme-object char-string) void
+      "OT0_init_sockaddr_from_string(___BODY(___arg1), ___arg2);")
+     result str)
+    result))
+
+(define ot0-internetX-address->socket-address1 ;; deprecated
   (let ((free (c-lambda (OT0-nonnull-socket-address) void "OT0_free_sockaddr"))
         (build (c-lambda
                 (scheme-object size_t unsigned-int16) OT0-socket-address

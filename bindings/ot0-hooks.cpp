@@ -63,6 +63,7 @@ bool OT0_C25519_verify(const void* pk, const void* buffer, size_t size, const vo
 void OT0_sockaddr_into_string(const void* sa, char buf[64]) { ((InetAddress*)sa)->toString(buf); }
 
 void* OT0_sockaddr_from_string(const char* str) { return new InetAddress(str); }
+void OT0_init_sockaddr_from_string(void *into, const char* str) { *((InetAddress*) into) = InetAddress(str); }
 void OT0_free_sockaddr(void* addr) { delete ((InetAddress*) addr); }
 void* OT0_sockaddr_from_bytes_and_port(const void* data, size_t len, unsigned int port)
 { return new InetAddress(data, len, port); }
