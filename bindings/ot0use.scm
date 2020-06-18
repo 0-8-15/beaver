@@ -96,8 +96,7 @@
          #;(should-use-external #f)
          (ot0-online event)))))
     ((TRACE)
-     (debug 'OT0-TRACE ((c-lambda ((pointer void)) char-string "___return(___arg1);") payload))
-     (debug 'OT0-CFG (ot0-query-network-config-base->vector (ctnw))))
+     (debug 'OT0-TRACE ((c-lambda ((pointer void)) char-string "___return(___arg1);") payload)))
     (else (debug 'OT0-EVENT event))))
 
 (define (ot0cli-ot0-event/default node userptr thr event payload)
@@ -111,8 +110,7 @@
          #;(should-use-external #f)
          (ot0-online event)))))
     ((TRACE)
-     (debug 'OT0-TRACE ((c-lambda ((pointer void)) char-string "___return(___arg1);") payload))
-     (debug 'OT0-CFG (ot0-query-network-config-base->vector (ctnw))))
+     (debug 'OT0-TRACE ((c-lambda ((pointer void)) char-string "___return(___arg1);") payload)))
     (else (debug 'OT0-EVENT event))))
 
 (on-ot0-event ot0cli-ot0-event/default)
