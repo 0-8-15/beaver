@@ -297,7 +297,7 @@
   (make-ot0-ad-hoc-network-interface network-id unit-id port))
 
 (define (assemble-ethernet-pbuf src dst ethertype payload len)
-  (let ((pbuf (or (make-pbuf-raw+ram (+ SIZEOF_ETH_HDR len))
+  (let ((pbuf (or (make-pbuf-raw+pool #;make-pbuf-raw+ram (+ SIZEOF_ETH_HDR len))
                   (error "pbuf allocation failed"))))
     (pbuf-fill-ethernet-header! pbuf (lwip-mac:host->network src) (lwip-mac:host->network dst) ethertype)
     (pbuf-copy-from-ptr! pbuf payload SIZEOF_ETH_HDR len)
@@ -470,7 +470,8 @@
 (on-ot0-maintainance
  (lambda (prm thunk)
    #; (debug 'ot0-maintainance (lwip-gambit-locked?))
-   (lambda ()
+   thunk
+   #;(lambda ()
      (thunk)
      (thread-yield!) ;; be sure the other threads are more or less done
      (##gc) ;; enforce garbage collection

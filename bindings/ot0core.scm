@@ -726,11 +726,19 @@ END
 (define (ot0-add-local-interface-address! sa) ;; EXPORT
   ;;; (unless (socket-address? sa) (error "ot0-add-local-interface-address!: illegal argument" sa))
   (assert-ot0-up! ot0-add-local-interface-address)
-  (begin-ot0-exclusive
-   ((OT0-c-safe-lambda
-     (ot0-node ot0-socket-address) bool
-     "___return(ZT_Node_addLocalInterfaceAddress(___arg1, ___arg2));")
-    (ot0-prm-ot0 %%ot0-prm) sa)))
+  (cond
+   ((u8vector? sa)
+    (begin-ot0-exclusive
+     ((OT0-c-safe-lambda
+       (ot0-node scheme-object) bool
+       "___return(ZT_Node_addLocalInterfaceAddress(___arg1, ___CAST(struct sockaddr_storage*,___BODY(___arg2))));")
+      (ot0-prm-ot0 %%ot0-prm) sa)))
+   (else
+    (begin-ot0-exclusive
+     ((OT0-c-safe-lambda
+       (ot0-node ot0-socket-address) bool
+       "___return(ZT_Node_addLocalInterfaceAddress(___arg1, ___arg2));")
+      (ot0-prm-ot0 %%ot0-prm) sa)))))
 
 (define (ot0-clear-local-interface-address!) ;; EXPORT
   (assert-ot0-up! ot0-clear-local-interface-address!)

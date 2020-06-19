@@ -110,11 +110,19 @@ END
 ;;; Socket Address
 
 (define OT0_SOCKADDR_STORAGE_SIZE ((c-lambda () size_t "___return(OT0_SOCKADDR_STORAGE_SIZE());")))
+(define OT0_SOCKADDR_IN4_SIZE 8) ;; FIXME
+(define OT0_SOCKADDR_IN6_SIZE 20) ;; FIXME
 
 (c-define-type OT0-socket-address (pointer (struct "sockaddr_storage") socket-address))
 (c-define-type OT0-nonnull-socket-address (nonnull-pointer (struct "sockaddr_storage") socket-address))
 
-(define (ot0-socket-address? obj) (let ((f (foreign-tags obj))) (and f (eq? (car f) 'socket-address))))
+(define (%%ot0-socket-address? obj) (let ((f (foreign-tags obj))) (and f (eq? (car f) 'socket-address))))
+
+(define (ot0-socket-address? obj)
+  ;; TBD: remove deprecated, allocating version
+  (or
+   (u8vector/space? obj OT0_SOCKADDR_STORAGE_SIZE)
+   (%%ot0-socket-address? obj)))
 
 (define (ot0-socket-address->string addr) ;; EXPORT
   (cond
@@ -139,7 +147,7 @@ END
         result))))
 
 (define (ot0-string->socket-address str)
-  (let ((result (result (make-u8vector OT0_SOCKADDR_STORAGE_SIZE))))
+  (let ((result (make-u8vector OT0_SOCKADDR_STORAGE_SIZE)))
     ((c-lambda
       (scheme-object char-string) void
       "OT0_init_sockaddr_from_string(___BODY(___arg1), ___arg2);")
@@ -167,48 +175,95 @@ END
         (build! result host (u8vector-length host) port)
         result))))
 
-(define ot0-socket-address-family
-  (c-lambda
-   (OT0-nonnull-socket-address) int "___return(___arg1->ss_family);"))
+(define (ot0-socket-address-family sa)
+  (cond
+   ((u8vector/space? sa 1)
+    ((c-lambda (scheme-object) int "___return(___CAST(struct sockaddr_storage*, ___BODY(___arg1))->ss_family);") sa))
+   (else ((c-lambda (OT0-nonnull-socket-address) int "___return(___arg1->ss_family);") sa))))
 
-(define ot0-socket-address-family-set!
-  (c-lambda
-   (OT0-nonnull-socket-address int) void "___arg1->ss_family = ___arg2;"))
+(define (ot0-socket-address-family-set! sa fam)
+  (cond
+   ((u8vector/space? sa 1)
+    ((c-lambda (scheme-object int) void
+               "___CAST(struct sockaddr_storage*, ___BODY(___arg1))->ss_family = ___arg2;") sa fam))
+   (else ((c-lambda (OT0-nonnull-socket-address int) void "___arg1->ss_family = ___arg2;") sa fam))))
 
-(define ot0-socket-address4-port
-  (c-lambda
-   (OT0-nonnull-socket-address) unsigned-int
-   "___return(ntohs(___CAST(struct sockaddr_in *, ___arg1)->sin_port));"))
+(define (ot0-socket-address4-port sa4)
+  (cond
+   ((u8vector/space? sa OT0_SOCKADDR_IN4_SIZE)
+    ((c-lambda (scheme-object) unsigned-int "___CAST(struct sockaddr_in*, ___BODY(___arg1))->sin_port;") sa4))
+   (else
+    ((c-lambda
+      (OT0-nonnull-socket-address) unsigned-int
+      "___return(ntohs(___CAST(struct sockaddr_in *, ___arg1)->sin_port));") sa4))))
 
 (define (ot0-socket-address4-ip4addr sa)
   (let ((result (make-u8vector 4)))
-    ((c-lambda
-      (OT0-nonnull-socket-address scheme-object) void
-      "memcpy(___BODY(___arg2), &(((struct sockaddr_in *)___arg1)->sin_addr), 4);")
-     sa result)
+    (cond
+     ((u8vector/space? sa OT0_SOCKADDR_IN4_SIZE)
+      ((c-lambda
+        (scheme-object scheme-object) void
+        "memcpy(___BODY(___arg2), &(___CAST(struct sockaddr_in*, ___BODY(___arg1))->sin_addr), 4);")
+       sa result))
+     (else
+      ((c-lambda
+        (OT0-nonnull-socket-address scheme-object) void
+        "memcpy(___BODY(___arg2), &(((struct sockaddr_in *)___arg1)->sin_addr), 4);")
+       sa result)))
     result))
 
-(define ot0-socket-address6-port
-  (c-lambda
-   (OT0-nonnull-socket-address) unsigned-int
-   "___return(ntohs(___CAST(struct sockaddr_in6 *, ___arg1)->sin6_port));"))
+(define (ot0-socket-address6-port sa)
+  (cond
+   ((u8vector/space? sa OT0_SOCKADDR_IN6_SIZE)
+    ((c-lambda
+      (scheme-object) unsigned-int
+      "___return(ntohs(___CAST(struct sockaddr_in6 *, ___BODY(___arg1))->sin6_port));")
+     sa))
+   (else
+    ((c-lambda
+      (OT0-nonnull-socket-address) unsigned-int
+      "___return(ntohs(___CAST(struct sockaddr_in6 *, ___arg1)->sin6_port));")
+     sa))))
 
-(define ot0-socket-address6-flowinfo
-  (c-lambda
-   (OT0-nonnull-socket-address) int
-   "___return(___CAST(struct sockaddr_in6 *, ___arg1)->sin6_flowinfo);"))
+(define (ot0-socket-address6-flowinfo sa)
+  (cond
+   ((u8vector/space? sa OT0_SOCKADDR_IN6_SIZE)
+    ((c-lambda
+      (scheme-object) int
+      "___return(___CAST(struct sockaddr_in6 *, ___BODY(___arg1))->sin6_flowinfo);")
+     sa))
+   (else
+    ((c-lambda
+      (OT0-nonnull-socket-address) int
+      "___return(___CAST(struct sockaddr_in6 *, ___arg1)->sin6_flowinfo);")
+     sa))))
 
-(define ot0-socket-address6-scope
-  (c-lambda
-   (OT0-nonnull-socket-address) int
-   "___return(___CAST(struct sockaddr_in6 *, ___arg1)->sin6_scope_id);"))
+(define (ot0-socket-address6-scope sa)
+  (cond
+   ((u8vector/space? sa OT0_SOCKADDR_IN6_SIZE)
+    ((c-lambda
+      (scheme-object) int
+      "___return(___CAST(struct sockaddr_in6 *, ___BODY(___arg1))->sin6_scope_id);")
+     sa))
+   (else
+    ((c-lambda
+      (OT0-nonnull-socket-address) int
+      "___return(___CAST(struct sockaddr_in6 *, ___arg1)->sin6_scope_id);")
+     sa))))
 
 (define (ot0-socket-address6-ip6addr sa)
   (let ((result (make-u8vector 16)))
-    ((c-lambda
-      (OT0-nonnull-socket-address scheme-object) void
-      "memcpy(___BODY(___arg2), &(((struct sockaddr_in6 *)___arg1)->sin6_addr), 16);")
-     sa result)
+    (cond
+     ((u8vector/space? sa OT0_SOCKADDR_IN6_SIZE)
+      ((c-lambda
+        (scheme-object scheme-object) void
+        "memcpy(___BODY(___arg2), &(((struct sockaddr_in6 *)___BODY(___arg1))->sin6_addr), 16);")
+       sa result))
+     (else
+      ((c-lambda
+        (OT0-nonnull-socket-address scheme-object) void
+        "memcpy(___BODY(___arg2), &(((struct sockaddr_in6 *)___arg1)->sin6_addr), 16);")
+       sa result)))
     result))
 
 ;;; Network Identifier
