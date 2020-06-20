@@ -80,7 +80,12 @@
       (let ((val (eval (string->symbol str))))
         (cond
          ((isa? val) val)
-         (else (error "spec did not parse as well known procedure" str val isa?))))))))
+         (else (error "spec did not parse as well known procedure" str val isa?)))))
+     ((? symbol? sym)
+      (let ((val (eval sym)))
+        (cond
+         ((isa? val) val)
+         (else (error "spec did not parse as well known procedure" sym val isa?))))))))
 
 (define (%string->pin loc x)
   (match
