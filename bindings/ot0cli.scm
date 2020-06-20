@@ -556,7 +556,7 @@
 (define (ot0cli-ot0-display-status! . unused)
   (define ndid (ot0-address))
   (println "Here:\n public:\n " (ot0-node-status) )
-  (print " #x" (hexstr ndid 10) " " (ot0-address) " in nw")
+  (print " unit id: " ndid " or #x" (hexstr ndid 10) " in nw")
   (for-each
    (lambda (nwid)
      (print " #x" (hexstr nwid 16) " " (number->string nwid)
