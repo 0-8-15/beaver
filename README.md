@@ -1,7 +1,13 @@
 Beaver
 ===========
 
-Beaver (formerly onetierzero) is a fork from zerotier just before the license change.  Hence GPLv3 or later.
+An IPv6 layer for Remote Inter Process Communication.
+
+Transport layer is intented to be replaceable, currently onetierzero
+only.
+
+Onetierzero, the former name of this repository, is a fork from
+zerotier just before the license change.  Hence GPLv3 or later.
 
 ## ISSUES
 
