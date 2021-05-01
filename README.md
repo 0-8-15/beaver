@@ -1,7 +1,7 @@
-Onetierzero
+Beaver
 ===========
 
-Onetierzero is a fork from zerotier just before the license change.  Hence GPLv3 or later.
+Beaver (formerly onetierzero) is a fork from zerotier just before the license change.  Hence GPLv3 or later.
 
 ## ISSUES
 
