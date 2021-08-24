@@ -107,16 +107,24 @@ public:
 	Mutex()
 	{
 		pthread_mutex_init(&_mh,(const pthread_mutexattr_t *)0);
+                valid=true;
 	}
 
 	~Mutex()
 	{
-		pthread_mutex_destroy(&_mh);
+#if 1 // 0: debug, do NOT destroy, HANG on use after free
+		if(pthread_mutex_destroy(&_mh)) {
+                  throw ZT_EXCEPTION_MUTEX_BUSY;
+                }
+                valid=false;
+#endif
 	}
 
 	inline void lock() const
 	{
-		pthread_mutex_lock(&((const_cast <Mutex *> (this))->_mh));
+          if ( !valid || (pthread_mutex_lock(&((const_cast <Mutex *> (this))->_mh)) != 0)) {
+            throw ZT_EXCEPTION_MUTEX_LOCK_FAILED;
+          }
 	}
 
 	inline void unlock() const
@@ -153,6 +161,7 @@ private:
 	const Mutex &operator=(const Mutex &) { return *this; }
 
 	pthread_mutex_t _mh;
+        bool valid;
 };
 
 #endif
