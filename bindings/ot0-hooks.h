@@ -33,8 +33,10 @@ bool OT0_C25519_verify(const void* pk, const void* buffer, size_t size, const vo
 
 void OT0_sockaddr_into_string(const void* sa, char buf[64]);
 void* OT0_sockaddr_from_string(const char* str);
+void OT0_init_sockaddr_from_string(void *into, const char* str);
 void OT0_free_sockaddr(void* addr);
 void* OT0_sockaddr_from_bytes_and_port(const void* data, size_t len, unsigned int port);
+void OT0_init_sockaddr_from_bytes_and_port(void *into, const void* data, size_t len, unsigned int port);
   
 typedef const void* OT0_Id;
 OT0_Id OT0_generate_Id();
@@ -87,9 +89,23 @@ const void* OT0_root_endpoint(void* o, size_t i, size_t j);
 typedef enum{
   PING_CHECK=1,
   PEER_PING=2,
+  INCOMING_PACKET_FILTER=3,
 } OT0_parameter_id;
 
 bool OT0_parameter_int_set(OT0_parameter_id key, int64_t val);
+bool OT0_parameter_pointer_set(OT0_parameter_id key, void* val);
+
+// Windows specific helpers
+
+#if _WIN32
+
+/* BEWARE: These are hackish. Used by ../node/InetAddress.cpp, included
+   there via relative path, to be implemented somewhere else. */
+
+extern const char *inet_ntop(int af, const void *src, char *dst, socklen_t size);
+extern  int inet_pton(int af, const char *src, void *dst);
+
+#endif
 
 #ifdef __cplusplus
 }

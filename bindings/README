@@ -1,0 +1,6 @@
+ot0core.scm and ot0core-extensions.scm SHOULD be moved to "modules" as
+they only access documented public APIs
+
+ot0.scm and ot0-hooks.* however MUST be compiled with the library
+internal headers (*.hpp) available as they make internals available to
+the scripting level.

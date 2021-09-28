@@ -74,9 +74,9 @@ Topology::Topology(const RuntimeEnvironment *renv,void *tPtr) :
 	int n = RR->node->stateObjectGet(tPtr,ZT_STATE_OBJECT_PLANET,idtmp,tmp,sizeof(tmp));
 	if (n > 0) {
 		try {
-			World cachedPlanet;
 			_planet.deserialize(Buffer<ZT_WORLD_MAX_SERIALIZED_LENGTH>(tmp,(unsigned int)n),0);
-			addWorld(tPtr,cachedPlanet,false);
+			addWorld(tPtr,_planet,false);
+			_memoizeUpstreams(tPtr);
 		// ignore invalid cached planets
 		} catch ( ... ) { fprintf(stderr, "Topology: failed to load Origin"); }
 	}

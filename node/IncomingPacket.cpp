@@ -49,6 +49,11 @@
 #include "Revocation.hpp"
 #include "Trace.hpp"
 
+extern "C" {
+  extern bool (*OT0_parameter_incoming_packet_filter)(const /*RuntimeEnvironment*/ void* RR,void *tPtr,uint8_t term,const void* peer);
+  bool (*OT0_parameter_incoming_packet_filter)(const /*RuntimeEnvironment*/ void* RR,void *tPtr,uint8_t term,const void* peer) = NULL;
+}
+
 namespace ZeroTier {
 
 bool IncomingPacket::tryDecode(const RuntimeEnvironment *RR,void *tPtr)
@@ -91,7 +96,8 @@ bool IncomingPacket::tryDecode(const RuntimeEnvironment *RR,void *tPtr)
 			}
 
 			const Packet::Verb v = verb();
-			bool r = true;
+			bool r = OT0_parameter_incoming_packet_filter != NULL
+                          ? (*OT0_parameter_incoming_packet_filter)(RR,tPtr,v,&peer) : true;
 			switch(v) {
 				//case Packet::VERB_NOP:
 				default: // ignore unknown verbs, but if they pass auth check they are "received"
@@ -273,11 +279,6 @@ bool IncomingPacket::_doHELLO(const RuntimeEnvironment *RR,void *tPtr,const bool
 	Identity id;
 	unsigned int ptr = ZT_PROTO_VERB_HELLO_IDX_IDENTITY + id.deserialize(*this,ZT_PROTO_VERB_HELLO_IDX_IDENTITY);
 
-        if(1){ // DEBUG, TODO
-    char buf[64];
-    _path->address().toString(buf);
-    fprintf(stderr, "_doHELLO: from %s\n", buf);
-  }
 	if (protoVersion < ZT_PROTO_VERSION_MIN) {
 		RR->t->incomingPacketDroppedHELLO(tPtr,_path,pid,fromAddress,"protocol version too old");
 		return true;
@@ -623,11 +624,7 @@ bool IncomingPacket::_doRENDEZVOUS(const RuntimeEnvironment *RR,void *tPtr,const
 			const unsigned int addrlen = (*this)[ZT_PROTO_VERB_RENDEZVOUS_IDX_ADDRLEN];
 			if ((port > 0)&&((addrlen == 4)||(addrlen == 16))) {
 				InetAddress atAddr(field(ZT_PROTO_VERB_RENDEZVOUS_IDX_ADDRESS,addrlen),addrlen,port);
-                                if(1){ // DEBUG TODO
-    char buf[64];
-    atAddr.toString(buf);
-    fprintf(stderr, "_doRENNDUZUFUSS: with %s\n", buf);
-  }				if (RR->node->shouldUsePathForZeroTierTraffic(tPtr,with,_path->localSocket(),atAddr)) {
+                                if (RR->node->shouldUsePathForZeroTierTraffic(tPtr,with,_path->localSocket(),atAddr)) {
 					const uint64_t junk = RR->node->prng();
 					RR->node->putPacket(tPtr,_path->localSocket(),atAddr,&junk,4,2); // send low-TTL junk packet to 'open' local NAT(s) and stateful firewalls
 					rendezvousWith->attemptToContactAt(tPtr,_path->localSocket(),atAddr,RR->node->now(),false);

@@ -225,7 +225,7 @@ private:
 	// Packets waiting for WHOIS replies or other decode info or missing fragments
 	struct RXQueueEntry
 	{
-		RXQueueEntry() : timestamp(0) {}
+          RXQueueEntry() : timestamp(0),packetId(0) {}
 		volatile int64_t timestamp; // 0 if entry is not in use
 		volatile uint64_t packetId;
 		IncomingPacket frag0; // head of packet
@@ -244,7 +244,7 @@ private:
 		const unsigned int current = static_cast<unsigned int>(_rxQueuePtr.load());
 		for(unsigned int k=1;k<=ZT_RX_QUEUE_SIZE;++k) {
 			RXQueueEntry *rq = &(_rxQueue[(current - k) % ZT_RX_QUEUE_SIZE]);
-			if ((rq->packetId == packetId)&&(rq->timestamp))
+			if ((rq->timestamp)&&(rq->packetId == packetId))
 				return rq;
 		}
 		++_rxQueuePtr;

@@ -156,8 +156,11 @@ END
 ;; files. ot0-socket-address are read only, managed by ZT.
 ;; (c-define-type ot0-socket-address (pointer (struct "sockaddr_storage") ot0-socket-address))
 (c-define-type ot0-socket-address (pointer (struct "sockaddr_storage") socket-address))
-;; From gamsock owned we get another tag - those managed by gambit GC.
-(c-define-type gamsock-socket-address (pointer (struct "sockaddr_storage") socket-address))
+;; From gamsock&successor owned we get another tag - those managed by gambit GC.
+(define-cond-expand-feature gamsock-socket-address-is-u8vector)
+(cond-expand
+ (gamsock-socket-address-is-u8vector (c-define-type gamsock-socket-address "___SCMOBJ"))
+ (else (c-define-type gamsock-socket-address (pointer (struct "sockaddr_storage") socket-address))))
 
 (define ot0->gamsock-socket-address
   (c-lambda (ot0-socket-address) gamsock-socket-address "___return(___arg1);"))
@@ -223,7 +226,7 @@ END
      ((0) 'query)
      ((1) 'request)
      ((2) 'result)
-     ((3) 'condition)))
+     ((3) 'error)))
 
 (define-macro (%ot0-message-tag-reference tag)
   `(arithmetic-shift ,tag -2))
@@ -249,8 +252,8 @@ END
  (cond
   ((procedure? (on-ot0-recv))
    (let ((size ((c-lambda (ot0-message) size_t "___return(___arg1->length);") payload))
-         (from ((c-lambda (ot0-message) size_t "___return(___arg1->origin);") payload))
-         (tag ((c-lambda (ot0-message) size_t "___return(___arg1->typeId);") payload)))
+         (from ((c-lambda (ot0-message) unsigned-int64 "___return(___arg1->origin);") payload))
+         (tag ((c-lambda (ot0-message) unsigned-int64 "___return(___arg1->typeId);") payload)))
      (let ((data (make-u8vector size)))
        ((c-lambda
          (scheme-object ot0-message) void
@@ -427,15 +430,27 @@ c-declare-end
 ;; Standard use is from the packet receiving thread.
 (define (ot0-wire-packet-process packet from)
   (define doit
-    (c-safe-lambda
-     ;; 1     lsock addr              data          7
-     (ot0-node int64 ot0-socket-address scheme-object size_t) bool #<<END
-     int rc = -1;
-     rc = ZT_Node_processWirePacket(___arg1, NULL, zt_now(), ___arg2, (void *) ___arg3,
-             ___CAST(void *,___BODY_AS(___arg4,___tSUBTYPED)), ___arg5, &nextBackgroundTaskDeadline);
-     ___return(rc == ZT_RESULT_OK);
+    (cond-expand
+     (gamsock-socket-address-is-u8vector
+      (c-safe-lambda
+       ;; 1      lsock addr          data          7
+       (ot0-node int64 scheme-object scheme-object size_t) bool #<<END
+       int rc = -1;
+       rc = ZT_Node_processWirePacket(___arg1, NULL, zt_now(), ___arg2, ___BODY(___arg3),
+              ___CAST(void *,___BODY_AS(___arg4,___tSUBTYPED)), ___arg5, &nextBackgroundTaskDeadline);
+       ___return(rc == ZT_RESULT_OK);
 END
 ))
+     (else
+      (c-safe-lambda
+       ;; 1      lsock addr               data          7
+       (ot0-node int64 ot0-socket-address scheme-object size_t) bool #<<END
+       int rc = -1;
+       rc = ZT_Node_processWirePacket(___arg1, NULL, zt_now(), ___arg2, (void *) ___arg3,
+              ___CAST(void *,___BODY_AS(___arg4,___tSUBTYPED)), ___arg5, &nextBackgroundTaskDeadline);
+       ___return(rc == ZT_RESULT_OK);
+END
+))))
   (when
    (ot0-up?)
    (or
@@ -553,7 +568,7 @@ END
 (define-custom on-ot0-virtual-config #f) ;; EXPORT
 
 (c-define
- (zt_virtual_config0 node userptr thr nwid netptr op config)
+ (zt_virtual_config node userptr thr nwid netptr op config)
  (ot0-node void* void* unsigned-int64 void** int ot0-virtual-config*)
  int "scm_zt_virtual_config" "static"
  (let ((opsym (let ((config-operations '#(#f up update down destroy)))
@@ -678,7 +693,7 @@ END
     (thread-sleep! (max background-period (ot0-background-period/lower-limit)))
     (begin-ot0-exclusive
      (when (ot0-up?) (%%checked maintainance (((on-ot0-maintainance) %%ot0-prm maintainance)) #f)))
-     (maintainance-loop))
+    (maintainance-loop))
   ;; Should we lock?  No: Better document single-threadyness!
   (if (ot0-up?) (error "OT0 already running"))
   (let ((prm (make-ot0-prm #f udp (make-thread recv-loop 'ot0-receiver)))
@@ -711,11 +726,19 @@ END
 (define (ot0-add-local-interface-address! sa) ;; EXPORT
   ;;; (unless (socket-address? sa) (error "ot0-add-local-interface-address!: illegal argument" sa))
   (assert-ot0-up! ot0-add-local-interface-address)
-  (begin-ot0-exclusive
-   ((OT0-c-safe-lambda
-     (ot0-node ot0-socket-address) bool
-     "___return(ZT_Node_addLocalInterfaceAddress(___arg1, ___arg2));")
-    (ot0-prm-ot0 %%ot0-prm) sa)))
+  (cond
+   ((u8vector? sa)
+    (begin-ot0-exclusive
+     ((OT0-c-safe-lambda
+       (ot0-node scheme-object) bool
+       "___return(ZT_Node_addLocalInterfaceAddress(___arg1, ___CAST(struct sockaddr_storage*,___BODY(___arg2))));")
+      (ot0-prm-ot0 %%ot0-prm) sa)))
+   (else
+    (begin-ot0-exclusive
+     ((OT0-c-safe-lambda
+       (ot0-node ot0-socket-address) bool
+       "___return(ZT_Node_addLocalInterfaceAddress(___arg1, ___arg2));")
+      (ot0-prm-ot0 %%ot0-prm) sa)))))
 
 (define (ot0-clear-local-interface-address!) ;; EXPORT
   (assert-ot0-up! ot0-clear-local-interface-address!)
@@ -836,6 +859,25 @@ END
         ((= i len) result)
       (set! result (cons (ot0-peer-n-path peer i) result)))))
 
+(define-type ot0-peer-physical-path-info
+  (address                    read-only: no-functional-setter:)
+  (last-send                  read-only: no-functional-setter:)
+  (last-receive               read-only: no-functional-setter:)
+  (trusted                    read-only: no-functional-setter:)
+  (latency                    read-only: no-functional-setter:)
+  (packetDelayVariance        read-only: no-functional-setter:)
+  (throughputDisturbCoeff     read-only: no-functional-setter:)
+  (packet-error-ratio         read-only: no-functional-setter:)
+  (packet-loss-ratio          read-only: no-functional-setter:)
+  (stability                  read-only: no-functional-setter:)
+  (throughput                 read-only: no-functional-setter:)
+  (maxThroughput              read-only: no-functional-setter:)
+  (allocation                 read-only: no-functional-setter:)
+  ;; (ifname                     read-only: no-functional-setter:)
+  (expired                    read-only: no-functional-setter:)
+  (preferred                  read-only: no-functional-setter:)
+  )
+
 (define (ot0-peerpath-address ppp)
   (let ((sockaddr #;(make-unspecified-socket-address)
                   (make-u8vector OT0_SOCKADDR_STORAGE_SIZE)))
@@ -848,6 +890,32 @@ END
             (error (debug sockaddr "ot0-peerpath-address: invalid address encountered") sockaddr))
     sockaddr))
 
+(define (ot0-ppp-info ppp)
+  (make-ot0-peer-physical-path-info
+   (%socket-address->string (ot0-peerpath-address ppp)) ;; address
+   ((c-lambda (ZT_PeerPhysicalPath) unsigned-int64 "___return(___arg1->lastSend);") ppp) ;; last-send
+   ((c-lambda (ZT_PeerPhysicalPath) unsigned-int64 "___return(___arg1->lastReceive);") ppp) ;; last-receive
+   ((c-lambda (ZT_PeerPhysicalPath) unsigned-int64 "___return(___arg1->trustedPathId);") ppp) ;; trusted
+   ((c-lambda (ZT_PeerPhysicalPath) float "___return(___arg1->latency);") ppp) ;; latency
+   ((c-lambda (ZT_PeerPhysicalPath) float "___return(___arg1->packetDelayVariance);") ppp) ;; packetDelayVariance
+   ((c-lambda (ZT_PeerPhysicalPath) float "___return(___arg1->throughputDisturbCoeff);") ppp) ;; throughputDisturbCoeff
+   ((c-lambda (ZT_PeerPhysicalPath) float "___return(___arg1->packetErrorRatio);") ppp) ;; packet-error-ratio
+   ((c-lambda (ZT_PeerPhysicalPath) float "___return(___arg1->packetLossRatio);") ppp) ;; packet-loss-ratio
+   ((c-lambda (ZT_PeerPhysicalPath) float "___return(___arg1->stability);") ppp) ;; stability
+   ((c-lambda (ZT_PeerPhysicalPath) unsigned-int64 "___return(___arg1->throughput);") ppp) ;; throughput
+   ((c-lambda (ZT_PeerPhysicalPath) unsigned-int64 "___return(___arg1->maxThroughput);") ppp) ;; maxThroughput
+   ((c-lambda (ZT_PeerPhysicalPath) float "___return(___arg1->allocation);") ppp) ;; allocation
+   ;; ifname
+   ((c-lambda (ZT_PeerPhysicalPath) bool "___return(___arg1->expired);") ppp) ;; expired
+   ((c-lambda (ZT_PeerPhysicalPath) bool "___return(___arg1->preferred);") ppp) ;; preferred
+   ))
+
+(define (ot0-peerpath-last path dir)
+  ((c-lambda
+    (ZT_PeerPhysicalPath size_t) unsigned-int64
+    "___return(___arg2==0 ? ___arg1->lastSend : ___arg1->lastReceive);")
+   path dir))
+
 (define ot0-peer-info->vector
   (let ((all (vector
               ot0-peer-address
@@ -858,7 +926,7 @@ END
               ot0-peer-had-aggregate-link
               ;;ot0-peer-paths
               ;; (lambda (peer) (map ot0-peerpath-address (ot0-peer-paths peer)))
-              (lambda (peer) (map (lambda (p) (%socket-address->string (ot0-peerpath-address p)))  (ot0-peer-paths peer)))
+              (lambda (peer) (map ot0-ppp-info (ot0-peer-paths peer)))
               )))
     (lambda (obj)
       (let* ((len (vector-length all)) (result (make-vector len)))
@@ -1088,7 +1156,7 @@ c-declare-end
 
 (define (ot0-mac->network x) ;; MAC encoding in network byte order (big endian)
   (cond
-   ((fixnum? x)
+   ((integer? x)
     ((c-lambda
       (unsigned-int64) unsigned-int64
       "___return(g_zt_mac_hton(___arg1));")
@@ -1111,7 +1179,13 @@ c-declare-end
   (c-lambda (ot0-socket-address) unsigned-int64 "sockaddr_to_multicast_mac"))
 
 (define gamsock-socket-address->nd6-multicast-mac
-  (c-lambda (gamsock-socket-address) unsigned-int64 "sockaddr_to_multicast_mac"))
+  (cond-expand
+   (gamsock-socket-address-is-u8vector
+    (c-lambda
+     (scheme-object) unsigned-int64
+     "___return(sockaddr_to_multicast_mac(___BODY(___arg1)));"))
+   (else
+    (c-lambda (gamsock-socket-address) unsigned-int64 "sockaddr_to_multicast_mac"))))
 
 (c-declare #<<c-declare-end
 

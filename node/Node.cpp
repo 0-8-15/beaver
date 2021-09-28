@@ -268,7 +268,7 @@ ZT_ResultCode Node::processBackgroundTasks(void *tptr,int64_t now,volatile int64
 
 	unsigned long timeUntilNextPingCheck =
           OT0_parameter_ping_check_interval ? OT0_parameter_ping_check_interval : ZT_PING_CHECK_INVERVAL;
-	const int64_t timeSinceLastPingCheck = now - _lastPingCheck;
+	const unsigned long timeSinceLastPingCheck = now - _lastPingCheck;
 	if (timeSinceLastPingCheck >= timeUntilNextPingCheck) {
 		try {
 			_lastPingCheck = now;
@@ -453,20 +453,20 @@ ZT_ResultCode Node::contactOrbits(void *tptr, unsigned int port)
   Node *_node = this;
   // SharedPtr<Peer> p = _node->getPeer(tptr, moonWorldId);
   std::vector<World> moons = _node->moons();
-  fprintf(stderr, "out of %d\n", moons.size());
+  fprintf(stderr, "out of %lu\n", moons.size());
   for(unsigned int mi=0; mi<moons.size(); ++mi) { // spare me iterators verbosity
     fprintf(stderr, "at index %d\n", mi);
     std::vector<World::Root> r = moons[mi].roots();
-    fprintf(stderr, "with %d roots\n", r.size());
+    fprintf(stderr, "with %ld roots\n", r.size());
     for(unsigned int ri=0; ri<r.size(); ++ri) {
       char buf[ZT_IDENTITY_STRING_BUFFER_LENGTH];
       r[ri].identity.toString(false, buf);
       fprintf(stderr, "key %s\n", buf);
       Peer p(_node->RR, _node->identity(), r[ri].identity);
       std::vector<InetAddress> addrs = r[ri].stableEndpoints;
-      fprintf(stderr, "has %d addresses\n", addrs.size());
+      fprintf(stderr, "has %lu addresses\n", addrs.size());
       for(unsigned int ai=0; ai<addrs.size(); ++ai) {
-        char bug[64];
+        char buf[64];
         addrs[ai].toString(buf);
         fprintf(stderr, "   %s\n", buf);
         p.attemptToContactAt(tptr, port, addrs[ai], _now, false);
@@ -484,6 +484,10 @@ void Node::contactPeerAt(void *tptr, unsigned int port, const char* id, const In
   p.attemptToContactAt(tptr, port, atAddress, now, true);
 }
 
+void Node::requestWhois(void *tptr, Address addr) // OT0 extension
+{
+  RR->sw->requestWhois(tptr, _now, addr);
+}
 
 ZT_ResultCode Node::deorbit(void *tptr,uint64_t moonWorldId)
 {
@@ -1005,6 +1009,16 @@ enum ZT_ResultCode ZT_Node_contact_peer(ZT_Node *node, void *tptr, unsigned int 
 {
 	try {
 		reinterpret_cast<ZeroTier::Node *>(node)->contactPeerAt(tptr, port, id, addr, now);
+                return ZT_RESULT_OK;
+	} catch ( ... ) {
+		return ZT_RESULT_FATAL_ERROR_INTERNAL;
+	}
+}
+
+enum ZT_ResultCode ZT_Node_request_whois(ZT_Node *node, void *tptr, uint64_t addr)
+{
+	try {
+          reinterpret_cast<ZeroTier::Node *>(node)->requestWhois(tptr, ZeroTier::Address(addr));
                 return ZT_RESULT_OK;
 	} catch ( ... ) {
 		return ZT_RESULT_FATAL_ERROR_INTERNAL;

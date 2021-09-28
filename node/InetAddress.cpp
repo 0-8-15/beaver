@@ -34,6 +34,10 @@
 #include "InetAddress.hpp"
 #include "Utils.hpp"
 
+#if _WIN32
+#include "../bindings/ot0-hooks.h"
+#endif
+
 namespace ZeroTier {
 
 const InetAddress InetAddress::LO4((const void *)("\x7f\x00\x00\x01"),4,0);

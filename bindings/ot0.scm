@@ -4,9 +4,6 @@
 
 (c-declare #<<END
 
-#include "ot0-hooks.h"
-#include <time.h>
-
 #ifdef _WIN32
 # include <winsock2.h>
 # include <ws2tcpip.h>
@@ -28,6 +25,10 @@ struct sockaddr_un {
 #include <netinet/in.h>
 #include <sys/un.h>
 #endif
+
+#include <time.h>
+
+#include "ot0-hooks.h"
 
 END
 )
@@ -54,7 +55,16 @@ END
 (define ot0-time->string
   (c-lambda
    (unsigned-int64) char-string
-   "char buf[26]; time_t tv =___arg1/1000; ctime_r(&tv, buf); buf[strlen(buf)-1]='\0'; ___return(buf);"))
+   "
+static /* I DO NOT SEE WHY THIS SHOULD BE STATIC, but valgrind complains */
+char buf[26] = {0,0,0,0,0, 0,0,0,0,0, 0,0,0,0,0, 0,0,0,0,0, 0,0,0,0,0, 0};
+ time_t tv =___arg1/1000;
+#if WIN32
+ _ctime64_s(&tv, 26, buf);
+#else
+ ctime_r(&tv, buf);
+#endif
+ ___return(buf);"))
 
 ;;; Crypto
 
@@ -95,7 +105,7 @@ END
     ((c-lambda
       (scheme-object scheme-object scheme-object size_t scheme-object) void
       "OT0_C25519_sign2(___BODY(___arg1), ___BODY(___arg2), ___BODY(___arg3), ___arg4, ___BODY(___arg5));")
-     sk pk data (u8-vector-length data) result)
+     sk pk data (u8vector-length data) result)
     result))
 
 (define (ot0-C25519-verify data sig pk) ;; EXPORT
@@ -110,11 +120,19 @@ END
 ;;; Socket Address
 
 (define OT0_SOCKADDR_STORAGE_SIZE ((c-lambda () size_t "___return(OT0_SOCKADDR_STORAGE_SIZE());")))
+(define OT0_SOCKADDR_IN4_SIZE 8) ;; FIXME
+(define OT0_SOCKADDR_IN6_SIZE 20) ;; FIXME
 
 (c-define-type OT0-socket-address (pointer (struct "sockaddr_storage") socket-address))
 (c-define-type OT0-nonnull-socket-address (nonnull-pointer (struct "sockaddr_storage") socket-address))
 
-(define (ot0-socket-address? obj) (let ((f (foreign-tags obj))) (and f (eq? (car f) 'socket-address))))
+(define (%%ot0-socket-address? obj) (let ((f (foreign-tags obj))) (and f (eq? (car f) 'socket-address))))
+
+(define (ot0-socket-address? obj)
+  ;; TBD: remove deprecated, allocating version
+  (or
+   (u8vector/space? obj OT0_SOCKADDR_STORAGE_SIZE)
+   (%%ot0-socket-address? obj)))
 
 (define (ot0-socket-address->string addr) ;; EXPORT
   (cond
@@ -130,7 +148,7 @@ END
       "char buf[64]; OT0_sockaddr_into_string(___arg1, buf); ___return(buf);")
      addr))))
 
-(define ot0-string->socket-address ;; MUST be freed!
+(define ot0-string->socket-address1 ;; MUST be freed!
   ;; FIXME: use a better version without malloc instead!
   (let ((free (c-lambda (OT0-nonnull-socket-address) void "OT0_free_sockaddr")))
     (lambda (str)
@@ -138,7 +156,15 @@ END
         (make-will result free)
         result))))
 
-(define ot0-internetX-address->socket-address
+(define (ot0-string->socket-address str)
+  (let ((result (make-u8vector OT0_SOCKADDR_STORAGE_SIZE)))
+    ((c-lambda
+      (scheme-object char-string) void
+      "OT0_init_sockaddr_from_string(___BODY(___arg1), ___arg2);")
+     result str)
+    result))
+
+(define ot0-internetX-address->socket-address1 ;; deprecated
   (let ((free (c-lambda (OT0-nonnull-socket-address) void "OT0_free_sockaddr"))
         (build (c-lambda
                 (scheme-object size_t unsigned-int16) OT0-socket-address
@@ -148,48 +174,106 @@ END
         (make-will result free)
         result))))
 
-(define ot0-socket-address-family
-  (c-lambda
-   (OT0-nonnull-socket-address) int "___return(___arg1->ss_family);"))
+(define ot0-internetX-address->socket-address
+  (let ()
+    (define build!
+      (c-lambda
+       (scheme-object scheme-object size_t unsigned-int16) OT0-socket-address
+       "OT0_init_sockaddr_from_bytes_and_port(___BODY(___arg1), ___BODY(___arg2),___arg3,___arg4);"))
+    (lambda (host port)
+      (let ((result (make-u8vector OT0_SOCKADDR_STORAGE_SIZE)))
+        (build! result host (u8vector-length host) port)
+        result))))
 
-(define ot0-socket-address-family-set!
-  (c-lambda
-   (OT0-nonnull-socket-address int) void "___arg1->ss_family = ___arg2;"))
+(define (ot0-socket-address-family sa)
+  (cond
+   ((u8vector/space? sa 1)
+    ((c-lambda (scheme-object) int "___return(___CAST(struct sockaddr_storage*, ___BODY(___arg1))->ss_family);") sa))
+   (else ((c-lambda (OT0-nonnull-socket-address) int "___return(___arg1->ss_family);") sa))))
 
-(define ot0-socket-address4-port
-  (c-lambda
-   (OT0-nonnull-socket-address) unsigned-int
-   "___return(ntohs(___CAST(struct sockaddr_in *, ___arg1)->sin_port));"))
+(define (ot0-socket-address-family-set! sa fam)
+  (cond
+   ((u8vector/space? sa 1)
+    ((c-lambda (scheme-object int) void
+               "___CAST(struct sockaddr_storage*, ___BODY(___arg1))->ss_family = ___arg2;") sa fam))
+   (else ((c-lambda (OT0-nonnull-socket-address int) void "___arg1->ss_family = ___arg2;") sa fam))))
+
+(define (ot0-socket-address4-port sa4)
+  (cond
+   ((u8vector/space? sa OT0_SOCKADDR_IN4_SIZE)
+    ((c-lambda (scheme-object) unsigned-int "___CAST(struct sockaddr_in*, ___BODY(___arg1))->sin_port;") sa4))
+   (else
+    ((c-lambda
+      (OT0-nonnull-socket-address) unsigned-int
+      "___return(ntohs(___CAST(struct sockaddr_in *, ___arg1)->sin_port));") sa4))))
 
 (define (ot0-socket-address4-ip4addr sa)
   (let ((result (make-u8vector 4)))
-    ((c-lambda
-      (OT0-nonnull-socket-address scheme-object) void
-      "memcpy(___BODY(___arg2), &(((struct sockaddr_in *)___arg1)->sin_addr), 4);")
-     sa result)
+    (cond
+     ((u8vector/space? sa OT0_SOCKADDR_IN4_SIZE)
+      ((c-lambda
+        (scheme-object scheme-object) void
+        "memcpy(___BODY(___arg2), &(___CAST(struct sockaddr_in*, ___BODY(___arg1))->sin_addr), 4);")
+       sa result))
+     (else
+      ((c-lambda
+        (OT0-nonnull-socket-address scheme-object) void
+        "memcpy(___BODY(___arg2), &(((struct sockaddr_in *)___arg1)->sin_addr), 4);")
+       sa result)))
     result))
 
-(define ot0-socket-address6-port
-  (c-lambda
-   (OT0-nonnull-socket-address) unsigned-int
-   "___return(ntohs(___CAST(struct sockaddr_in6 *, ___arg1)->sin6_port));"))
+(define (ot0-socket-address6-port sa)
+  (cond
+   ((u8vector/space? sa OT0_SOCKADDR_IN6_SIZE)
+    ((c-lambda
+      (scheme-object) unsigned-int
+      "___return(ntohs(___CAST(struct sockaddr_in6 *, ___BODY(___arg1))->sin6_port));")
+     sa))
+   (else
+    ((c-lambda
+      (OT0-nonnull-socket-address) unsigned-int
+      "___return(ntohs(___CAST(struct sockaddr_in6 *, ___arg1)->sin6_port));")
+     sa))))
 
-(define ot0-socket-address6-flowinfo
-  (c-lambda
-   (OT0-nonnull-socket-address) int
-   "___return(___CAST(struct sockaddr_in6 *, ___arg1)->sin6_flowinfo);"))
+(define (ot0-socket-address6-flowinfo sa)
+  (cond
+   ((u8vector/space? sa OT0_SOCKADDR_IN6_SIZE)
+    ((c-lambda
+      (scheme-object) int
+      "___return(___CAST(struct sockaddr_in6 *, ___BODY(___arg1))->sin6_flowinfo);")
+     sa))
+   (else
+    ((c-lambda
+      (OT0-nonnull-socket-address) int
+      "___return(___CAST(struct sockaddr_in6 *, ___arg1)->sin6_flowinfo);")
+     sa))))
 
-(define ot0-socket-address6-scope
-  (c-lambda
-   (OT0-nonnull-socket-address) int
-   "___return(___CAST(struct sockaddr_in6 *, ___arg1)->sin6_scope_id);"))
+(define (ot0-socket-address6-scope sa)
+  (cond
+   ((u8vector/space? sa OT0_SOCKADDR_IN6_SIZE)
+    ((c-lambda
+      (scheme-object) int
+      "___return(___CAST(struct sockaddr_in6 *, ___BODY(___arg1))->sin6_scope_id);")
+     sa))
+   (else
+    ((c-lambda
+      (OT0-nonnull-socket-address) int
+      "___return(___CAST(struct sockaddr_in6 *, ___arg1)->sin6_scope_id);")
+     sa))))
 
 (define (ot0-socket-address6-ip6addr sa)
   (let ((result (make-u8vector 16)))
-    ((c-lambda
-      (OT0-nonnull-socket-address scheme-object) void
-      "memcpy(___BODY(___arg2), &(((struct sockaddr_in6 *)___arg1)->sin6_addr), 16);")
-     sa result)
+    (cond
+     ((u8vector/space? sa OT0_SOCKADDR_IN6_SIZE)
+      ((c-lambda
+        (scheme-object scheme-object) void
+        "memcpy(___BODY(___arg2), &(((struct sockaddr_in6 *)___BODY(___arg1))->sin6_addr), 16);")
+       sa result))
+     (else
+      ((c-lambda
+        (OT0-nonnull-socket-address scheme-object) void
+        "memcpy(___BODY(___arg2), &(((struct sockaddr_in6 *)___arg1)->sin6_addr), 16);")
+       sa result)))
     result))
 
 ;;; Network Identifier
@@ -496,7 +580,16 @@ ___return(buf);")
   ((c-lambda (int int64) bool "OT0_parameter_int_set")
    (case key
      ((PING_CHECK) 1)
-     (else (error "invalid OT0 parameter name" key)))
+     (else (error "invalid OT0 int parameter name" key)))
+   value))
+
+(define (ot0-parameter-function-set! key value)
+  ;; FIXME the `function` delcaration is stupid, but gambit did not
+  ;; eat plain `function` as expected.
+  ((c-lambda (int (function () bool)) bool "OT0_parameter_pointer_set")
+   (case key
+     ((INCOMING_PACKET_FILTER) 3)
+     (else (error "invalid OT0 pointer parameter name" key)))
    value))
 
 (include "ot0core.scm")

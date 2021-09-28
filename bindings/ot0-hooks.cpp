@@ -1,4 +1,3 @@
-#include "ot0-hooks.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -15,6 +14,8 @@
 #include <node/Identity.hpp>
 #include <node/InetAddress.hpp>
 #include <osdep/OSUtils.hpp>
+
+#include "ot0-hooks.h"
 
 using namespace ZeroTier;
 
@@ -63,9 +64,12 @@ bool OT0_C25519_verify(const void* pk, const void* buffer, size_t size, const vo
 void OT0_sockaddr_into_string(const void* sa, char buf[64]) { ((InetAddress*)sa)->toString(buf); }
 
 void* OT0_sockaddr_from_string(const char* str) { return new InetAddress(str); }
+void OT0_init_sockaddr_from_string(void *into, const char* str) { *((InetAddress*) into) = InetAddress(str); }
 void OT0_free_sockaddr(void* addr) { delete ((InetAddress*) addr); }
 void* OT0_sockaddr_from_bytes_and_port(const void* data, size_t len, unsigned int port)
 { return new InetAddress(data, len, port); }
+void OT0_init_sockaddr_from_bytes_and_port(void *into, const void* data, size_t len, unsigned int port)
+{ *((InetAddress*) into) = InetAddress(data, len, port); }
 
 void OT0_g_free_ID(OT0_Id id) { delete (Identity*)id; }
 
@@ -168,6 +172,23 @@ bool OT0_parameter_int_set(OT0_parameter_id key, int64_t val) {
   case PING_CHECK:
     if(val<0 || val > ZT_PEER_PING_PERIOD*3) return 0;
     OT0_parameter_ping_check_interval = val;
+    break;
+  default: return 0;
+  }
+  return 1;
+}
+
+#include <node/RuntimeEnvironment.hpp>
+
+extern bool // in IncomingPacket.cpp
+(*OT0_parameter_incoming_packet_filter)(const /*RuntimeEnvironment*/ void* RR, void* tPtr,
+                                        uint8_t term, const void* peer);
+
+bool OT0_parameter_pointer_set(OT0_parameter_id key, void* val) {
+  switch(key) {
+  case INCOMING_PACKET_FILTER:
+    OT0_parameter_incoming_packet_filter = (bool(*)(const /*RuntimeEnvironment*/void* RR, void* tPtr,
+                                                    uint8_t term, const void* peer))val;
     break;
   default: return 0;
   }

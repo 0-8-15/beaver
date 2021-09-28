@@ -35,14 +35,21 @@ ifeq ($(MINIUPNPC_IS_NEW_ENOUGH),1)
 	override DEFS+=-DZT_USE_SYSTEM_MINIUPNPC
 	LDLIBS+=-lminiupnpc
 else
-	override DEFS+=-DMINIUPNP_STATICLIB -DMINIUPNPC_SET_SOCKET_TIMEOUT -DMINIUPNPC_GET_SRC_ADDR -D_BSD_SOURCE -D_DEFAULT_SOURCE -D_XOPEN_SOURCE=600 -DOS_STRING=\"Linux\" -DMINIUPNPC_VERSION_STRING=\"2.0\" -DUPNP_VERSION_STRING=\"UPnP/1.1\" -DENABLE_STRNATPMPERR
+	override DEFS+=-DMINIUPNP_STATICLIB -DMINIUPNPC_SET_SOCKET_TIMEOUT -DMINIUPNPC_GET_SRC_ADDR -D_BSD_SOURCE -D_DEFAULT_SOURCE -D_XOPEN_SOURCE=600 -DOS_STRING=\"Linux\" -DMINIUPNPC_VERSION_STRING=\"2.0\" -DUPNP_VERSION_STRING=\"UPnP/1.1\" -DENABLE_STRNATPMPERR -I ext/miniupnpc
 	ONE_OBJS+=ext/miniupnpc/connecthostport.o ext/miniupnpc/igd_desc_parse.o ext/miniupnpc/minisoap.o ext/miniupnpc/minissdpc.o ext/miniupnpc/miniupnpc.o ext/miniupnpc/miniwget.o ext/miniupnpc/minixml.o ext/miniupnpc/portlistingparse.o ext/miniupnpc/receivedata.o ext/miniupnpc/upnpcommands.o ext/miniupnpc/upnpdev.o ext/miniupnpc/upnperrors.o ext/miniupnpc/upnpreplyparse.o
+	INCLUDES+=-I ext/miniupnpc
 endif
-ifeq ($(NOSYS)$(wildcard /usr/include/natpmp.h),)
+ifneq ($(NOSYS),)
+	override DEFS+=-I ext/libnatpmp
 	ONE_OBJS+=ext/libnatpmp/natpmp.o ext/libnatpmp/getgateway.o
 else
+ ifneq ($(wildcard /usr/include/natpmp.h),)
 	LDLIBS+=-lnatpmp
 	override DEFS+=-DZT_USE_SYSTEM_NATPMP
+ else
+	override DEFS+=-I ext/libnatpmp
+	ONE_OBJS+=ext/libnatpmp/natpmp.o ext/libnatpmp/getgateway.o
+ endif
 endif
 
 # Use bundled http-parser since distribution versions are NOT API-stable or compatible!
@@ -75,7 +82,7 @@ ifeq ($(ZT_DEBUG),1)
 	STRIP?=echo
 	# The following line enables optimization for the crypto code, since
 	# C25519 in particular is almost UNUSABLE in -O0 even on a 3ghz box!
-node/Salsa20.o node/SHA512.o node/C25519.o node/Poly1305.o: CXXFLAGS=-Wall -O2 -g -pthread $(INCLUDES) $(DEFS)
+node/Salsa20.o node/SHA512.o node/C25519.o node/Poly1305.o: CXXFLAGS=-fPIC -Wall -O2 -g -pthread $(INCLUDES) $(DEFS)
 else
 	CFLAGS?=-O3 -fstack-protector -fPIE
 	override CFLAGS+=-Wall -Wno-deprecated -pthread $(INCLUDES) -DNDEBUG $(DEFS)
@@ -84,6 +91,10 @@ else
 	LDFLAGS=-pie -Wl,-z,relro,-z,now
 	STRIP?=strip
 	STRIP+=--strip-all
+endif
+
+ifneq ($(ZT_JSON_SUPPORT), 1)
+CXXFLAGS += -DOMIT_JSON_SUPPORT
 endif
 
 ifeq ($(ZT_QNAP), 1)
@@ -305,7 +316,7 @@ zerotier-cli: zerotier-one
 	ln -sf zerotier-one zerotier-cli
 
 libzerotiercore.a:	FORCE
-	make CFLAGS="-O3 -fstack-protector -fPIC" CXXFLAGS="-O3 -std=c++11 -fstack-protector -fPIC" $(CORE_OBJS) $(ONE_OBJS)
+	make CFLAGS="-O3 -fstack-protector -fPIC" CXXFLAGS="$(CXXFLAGS) -O3 -std=c++11 -fstack-protector -fPIC" $(CORE_OBJS) $(ONE_OBJS)
 	ar rcs libzerotiercore.a $(CORE_OBJS) $(ONE_OBJS)
 	ranlib libzerotiercore.a
 

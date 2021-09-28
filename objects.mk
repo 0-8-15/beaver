@@ -27,7 +27,6 @@ CORE_OBJS=\
 	node/Utils.o
 
 ONE_OBJS=\
-	controller/EmbeddedNetworkController.o \
 	controller/DBMirrorSet.o \
 	controller/DB.o \
 	controller/FileDB.o \
@@ -41,3 +40,7 @@ ONE_OBJS=\
 	service/SoftwareUpdater.o \
 	service/OneService.o
 
+ifeq ($(ZT_JSON_SUPPORT), 1)
+ONE_OBJS +=\
+	controller/EmbeddedNetworkController.o
+endif
