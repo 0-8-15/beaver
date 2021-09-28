@@ -293,7 +293,7 @@ public:
 #else
 			const bool gotViaProc = false;
 #endif
-#if !defined(ZT_SDK) || !defined(__ANDROID__) // getifaddrs() freeifaddrs() not available on Android
+#if !defined(ZT_SDK) && !defined(__ANDROID__) // getifaddrs() freeifaddrs() not available on Android until API 24
 			if (!gotViaProc) {
 				struct ifaddrs *ifatbl = (struct ifaddrs *)0;
 				struct ifaddrs *ifa;

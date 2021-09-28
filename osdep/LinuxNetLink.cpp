@@ -28,6 +28,7 @@
 
 #include <unistd.h>
 #include <linux/if_tun.h>
+#include <errno.h> // for Android
 
 namespace ZeroTier {
 

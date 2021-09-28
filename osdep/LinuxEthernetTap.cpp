@@ -348,6 +348,9 @@ bool LinuxEthernetTap::removeIp(const InetAddress &ip)
 std::vector<InetAddress> LinuxEthernetTap::ips() const
 {
 	struct ifaddrs *ifa = (struct ifaddrs *)0;
+#ifdef __ANDROID__ // getifaddrs() freeifaddrs() not available on Android until API 24
+        return std::vector<InetAddress>();
+#else
 	if (getifaddrs(&ifa))
 		return std::vector<InetAddress>();
 
@@ -381,6 +384,7 @@ std::vector<InetAddress> LinuxEthernetTap::ips() const
 	r.erase(std::unique(r.begin(),r.end()),r.end());
 
 	return r;
+#endif
 }
 
 void LinuxEthernetTap::put(const MAC &from,const MAC &to,unsigned int etherType,const void *data,unsigned int len)
