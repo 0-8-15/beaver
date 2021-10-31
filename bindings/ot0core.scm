@@ -689,10 +689,14 @@ END
       ___return(rc == ZT_RESULT_OK);
 END
 ) (ot0-prm-ot0 %%ot0-prm)))
+  (define (maintainance*)
+    (begin-ot0-exclusive
+     (when (ot0-up?) (%%checked maintainance (((on-ot0-maintainance) %%ot0-prm maintainance)) #f))))
   (define (maintainance-loop)
     (thread-sleep! (max background-period (ot0-background-period/lower-limit)))
-    (begin-ot0-exclusive
-     (when (ot0-up?) (%%checked maintainance (((on-ot0-maintainance) %%ot0-prm maintainance)) #f)))
+    (if (##in-safe-callback?)
+        (##safe-lambda-post! maintainance*)
+        (maintainance*))
     (maintainance-loop))
   ;; Should we lock?  No: Better document single-threadyness!
   (if (ot0-up?) (error "OT0 already running"))
